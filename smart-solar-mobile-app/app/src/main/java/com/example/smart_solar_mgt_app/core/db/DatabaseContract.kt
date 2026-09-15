@@ -90,7 +90,7 @@ object DatabaseContract {
                 $COL_CREATED_AT INTEGER NOT NULL,
                 $COL_UPDATED_AT INTEGER NOT NULL,
                 FOREIGN KEY($COL_PROSUMER_NIC) REFERENCES ${Users.TABLE}(${Users.COL_NIC}) ON DELETE CASCADE,
-                FOREIGN KEY($COL_STATION_ID) REFERENCES $TABLE(${Stations.COL_STATION_ID}) ON DELETE RESTRICT
+                FOREIGN KEY($COL_STATION_ID) REFERENCES ${Stations.TABLE}(${Stations.COL_STATION_ID}) ON DELETE RESTRICT
             )
         """
 

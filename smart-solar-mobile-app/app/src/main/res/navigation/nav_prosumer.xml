@@ -4,6 +4,15 @@
     android:id="@+id/nav_prosumer"
     app:startDestination="@id/homeFragment">
 
+    <action
+        android:id="@+id/action_global_newBookingFragment"
+        app:destination="@id/newBookingFragment" />
+
+    <fragment
+        android:id="@+id/newBookingFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.prosumer.newbooking.NewBookingFragment"
+        android:label="New Booking" />
+
     <fragment
         android:id="@+id/homeFragment"
         android:name="com.example.smart_solar_mgt_app.ui.prosumer.home.HomeFragment"
@@ -22,6 +31,15 @@
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.example.smart_solar_mgt_app.ui.prosumer.profile.ProfileFragment"
-        android:label="Profile" />
+        android:label="Profile">
+        <action
+            android:id="@+id/action_profileFragment_to_editProfileFragment"
+            app:destination="@id/editProfileFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editProfileFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.prosumer.profile.EditProfileFragment"
+        android:label="Edit Profile" />
 
 </navigation>

@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.fragment.findNavController
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.di.ServiceLocator
@@ -49,10 +50,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val btnNewBooking = view.findViewById<MaterialButton>(R.id.btnNewBooking)
         val btnNewBookingEmpty = view.findViewById<MaterialButton>(R.id.btnNewBookingEmpty)
 
-        val notImplementedYet = { Toast.makeText(requireContext(), "Coming soon", Toast.LENGTH_SHORT).show() }
-        btnNewBooking.setOnClickListener { notImplementedYet() }
-        btnNewBookingEmpty.setOnClickListener { notImplementedYet() }
-        btnViewQr.setOnClickListener { notImplementedYet() }
+        val goToNewBooking = { findNavController().navigate(R.id.action_global_newBookingFragment) }
+        btnNewBooking.setOnClickListener { goToNewBooking() }
+        btnNewBookingEmpty.setOnClickListener { goToNewBooking() }
+        btnViewQr.setOnClickListener { Toast.makeText(requireContext(), "Coming soon", Toast.LENGTH_SHORT).show() }
 
         swipeRefresh.setOnRefreshListener { viewModel.loadDashboard() }
 
