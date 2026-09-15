@@ -57,14 +57,13 @@ class RegisterViewModel(
             address = input.address.trim(),
             passwordHash = hashedPassword,
             role = Role.PROSUMER,
-            accountStatus = AccountStatus.ACTIVE
+            accountStatus = AccountStatus.PENDING_APPROVAL
         )
 
         return when (val result = authRepository.createUser(newUser)) {
-            is AppResult.Success -> {
-                securityManager.login(nic, input.password.toCharArray())
-                RegisterUiState.Success
-            }
+            // No auto-login: a PENDING_APPROVAL account has no business holding an authenticated
+            // session yet - the user goes back to Login and waits to be activated.
+            is AppResult.Success -> RegisterUiState.PendingActivation
             is AppResult.Failure -> when (result.error) {
                 is AppError.UniqueConstraintViolation ->
                     RegisterUiState.FieldErrors(mapOf(RegisterField.NIC to "Already registered"))

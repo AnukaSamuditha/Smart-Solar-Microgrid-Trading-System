@@ -5,6 +5,7 @@ import com.example.smart_solar_mgt_app.core.common.AppError
 import com.example.smart_solar_mgt_app.core.common.AppResult
 import com.example.smart_solar_mgt_app.core.db.LocalDbManager
 import com.example.smart_solar_mgt_app.domain.model.AccountStatus
+import com.example.smart_solar_mgt_app.domain.model.Role
 import com.example.smart_solar_mgt_app.domain.model.Session
 import com.example.smart_solar_mgt_app.domain.model.User
 
@@ -35,6 +36,9 @@ class AuthRepositoryImpl(private val localDbManager: LocalDbManager) : AuthRepos
     override fun updateAccountStatus(nic: String, status: AccountStatus) {
         localDbManager.updateAccountStatus(nic, status)
     }
+
+    override fun getUsersPendingActivation(): List<User> =
+        localDbManager.getUsersByRoleAndStatus(Role.PROSUMER, AccountStatus.PENDING_APPROVAL)
 
     override fun mirrorSessionToSqlite(session: Session) {
         localDbManager.saveSessionMirror(session)

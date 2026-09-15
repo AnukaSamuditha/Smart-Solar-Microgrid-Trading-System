@@ -17,6 +17,7 @@ sealed class HomeUiState {
 }
 
 data class UpcomingBooking(
+    val bookingId: String,
     val stationName: String,
     val dateLabel: String,
     val timeLabel: String,

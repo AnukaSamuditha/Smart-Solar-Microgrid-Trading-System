@@ -2,17 +2,19 @@ package com.example.smart_solar_mgt_app.ui.gridoperator
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.Role
 import com.example.smart_solar_mgt_app.ui.auth.LoginActivity
-import com.google.android.material.button.MaterialButton
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 /**
- * Placeholder landing screen for the GRID_OPERATOR role. Replaced by the real bottom-nav
- * dashboard (Home/Scan QR/Bookings/Map) in a later phase.
+ * Real Grid Operator dashboard: bottom-nav host for Home (pending approvals) / Scan QR /
+ * Bookings (cross-prosumer overview) / Map. Supersedes the Phase 11 debug approval tool
+ * (app/src/debug/) for approve/reject, though that tool is left in place for now.
  */
 class OperatorMainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,18 +33,10 @@ class OperatorMainActivity : AppCompatActivity() {
             return
         }
 
-        setContentView(R.layout.activity_role_placeholder)
-        findViewById<TextView>(R.id.tvPlaceholderTitle).text =
-            "Grid Operator Dashboard (placeholder)\nLogged in as: ${session.userId}"
+        setContentView(R.layout.activity_operator_main)
 
-        findViewById<MaterialButton>(R.id.btnLogout).setOnClickListener {
-            ServiceLocator.securityManager.logout()
-            startActivity(
-                Intent(this, LoginActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                }
-            )
-            finish()
-        }
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.navHostOperator) as NavHostFragment
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavOperator)
+        bottomNav.setupWithNavController(navHostFragment.navController)
     }
 }

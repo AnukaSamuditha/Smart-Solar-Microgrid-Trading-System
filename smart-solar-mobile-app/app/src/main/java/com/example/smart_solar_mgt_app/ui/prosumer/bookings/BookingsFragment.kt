@@ -17,8 +17,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 class BookingsFragment : Fragment(R.layout.fragment_bookings) {
 
@@ -32,12 +36,13 @@ class BookingsFragment : Fragment(R.layout.fragment_bookings) {
         super.onViewCreated(view, savedInstanceState)
 
         val etSearch = view.findViewById<TextInputEditText>(R.id.etSearch)
+        val etDateFilter = view.findViewById<TextInputEditText>(R.id.etDateFilter)
         val tabLayout = view.findViewById<TabLayout>(R.id.tabLayoutBookings)
         val recyclerView = view.findViewById<RecyclerView>(R.id.rvBookings)
         val progressBookings = view.findViewById<ProgressBar>(R.id.progressBookings)
         val emptyState = view.findViewById<View>(R.id.emptyStateBookings)
         val tvEmptyMessage = view.findViewById<TextView>(R.id.tvEmptyBookingsMessage)
-        val btnClearSearch = view.findViewById<MaterialButton>(R.id.btnClearSearch)
+        val btnClearFilters = view.findViewById<MaterialButton>(R.id.btnClearFilters)
 
         val adapter = BookingsAdapter { item ->
             val args = Bundle().apply { putString(BookingDetailFragment.ARG_BOOKING_ID, item.bookingId) }
@@ -67,7 +72,25 @@ class BookingsFragment : Fragment(R.layout.fragment_bookings) {
             }
         })
 
-        btnClearSearch.setOnClickListener { etSearch.setText("") }
+        etDateFilter.setOnClickListener { showDateFilterPicker(etDateFilter) }
+        etDateFilter.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                val text = s?.toString().orEmpty()
+                if (text.isBlank()) {
+                    viewModel.onDateFilterCleared()
+                } else {
+                    viewModel.onDateFilterSelected(LocalDate.parse(text))
+                }
+            }
+        })
+
+        btnClearFilters.setOnClickListener {
+            etSearch.setText("")
+            etDateFilter.setText("")
+            viewModel.onFiltersCleared()
+        }
 
         viewModel.state.observe(viewLifecycleOwner) { state ->
             progressBookings.isVisible = state is BookingsUiState.Loading
@@ -78,15 +101,26 @@ class BookingsFragment : Fragment(R.layout.fragment_bookings) {
                 is BookingsUiState.Loaded -> adapter.submitList(state.items)
                 BookingsUiState.EmptyScope -> {
                     tvEmptyMessage.text = emptyScopeMessage(tabLayout.selectedTabPosition)
-                    btnClearSearch.isVisible = false
+                    btnClearFilters.isVisible = false
                 }
                 BookingsUiState.NoResults -> {
-                    tvEmptyMessage.text = "No bookings match your search"
-                    btnClearSearch.isVisible = true
+                    tvEmptyMessage.text = "No reservations match your filters"
+                    btnClearFilters.isVisible = true
                 }
                 BookingsUiState.Loading -> Unit
             }
         }
+    }
+
+    private fun showDateFilterPicker(target: TextInputEditText) {
+        val picker = MaterialDatePicker.Builder.datePicker()
+            .setTitleText("Filter by date")
+            .build()
+        picker.addOnPositiveButtonClickListener { selectionUtcMillis ->
+            val date = Instant.ofEpochMilli(selectionUtcMillis).atZone(ZoneOffset.UTC).toLocalDate()
+            target.setText(date.toString())
+        }
+        picker.show(childFragmentManager, "bookingDateFilterPicker")
     }
 
     private fun emptyScopeMessage(tabPosition: Int): String = when (tabPosition) {

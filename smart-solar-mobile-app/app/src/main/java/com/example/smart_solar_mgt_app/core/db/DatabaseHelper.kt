@@ -16,7 +16,13 @@ class DatabaseHelper(context: Context) :
 
     override fun onConfigure(db: SQLiteDatabase) {
         super.onConfigure(db)
-        db.setForeignKeyConstraintsEnabled(true)
+        // Foreign key enforcement is turned on in onOpen(), not here. onCreate/onUpgrade run
+        // inside a transaction the framework opens for us, and SQLite treats
+        // "PRAGMA foreign_keys" as a no-op while a transaction is active - so a migration that
+        // rebuilds a table referenced by an ON DELETE CASCADE (bookings is referenced by
+        // transactions) needs enforcement to have never been turned on yet during that
+        // transaction, since with it on, DROP TABLE performs an implicit DELETE FROM and would
+        // cascade-delete every matching row in the referencing table.
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -35,8 +41,71 @@ class DatabaseHelper(context: Context) :
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // No migrations yet - DATABASE_VERSION is still 1. Future schema changes land here as
-        // incremental `if (oldVersion < N)` steps, never a single drop-and-recreate.
+        if (oldVersion < 2) {
+            migrateBookingStatusConfirmedToApproved(db)
+        }
+        // Future schema changes land here as further incremental `if (oldVersion < N)` steps,
+        // never a single drop-and-recreate of the whole database.
+    }
+
+    override fun onOpen(db: SQLiteDatabase) {
+        super.onOpen(db)
+        db.setForeignKeyConstraintsEnabled(true)
+    }
+
+    /**
+     * v1 -> v2: renames the bookings.status value 'CONFIRMED' to 'APPROVED' (terminology change
+     * to match the assignment/future API naming - no behavioral change). SQLite can't ALTER a
+     * CHECK constraint in place, so this rebuilds the table: existing rows are preserved via the
+     * CASE-mapped INSERT...SELECT, only the status value is rewritten. Every other status value
+     * and column passes through unchanged.
+     */
+    private fun migrateBookingStatusConfirmedToApproved(db: SQLiteDatabase) {
+        val b = DatabaseContract.Bookings
+        val u = DatabaseContract.Users
+        val s = DatabaseContract.Stations
+
+        db.execSQL(
+            """
+            CREATE TABLE bookings_new (
+                ${b.COL_BOOKING_ID} TEXT PRIMARY KEY,
+                ${b.COL_PROSUMER_NIC} TEXT NOT NULL,
+                ${b.COL_STATION_ID} TEXT NOT NULL,
+                ${b.COL_BOOKING_DATE} TEXT NOT NULL,
+                ${b.COL_BOOKING_TIME} TEXT NOT NULL,
+                ${b.COL_ENERGY_AMOUNT} REAL NOT NULL,
+                ${b.COL_STATUS} TEXT NOT NULL DEFAULT 'PENDING'
+                    CHECK(${b.COL_STATUS} IN ('PENDING','APPROVED','CANCELLED','COMPLETED','EXPIRED')),
+                ${b.COL_SYNC_STATUS} TEXT NOT NULL DEFAULT 'LOCAL_ONLY'
+                    CHECK(${b.COL_SYNC_STATUS} IN ('LOCAL_ONLY','PENDING_SYNC','SYNCED','SYNC_FAILED')),
+                ${b.COL_CREATED_AT} INTEGER NOT NULL,
+                ${b.COL_UPDATED_AT} INTEGER NOT NULL,
+                FOREIGN KEY(${b.COL_PROSUMER_NIC}) REFERENCES ${u.TABLE}(${u.COL_NIC}) ON DELETE CASCADE,
+                FOREIGN KEY(${b.COL_STATION_ID}) REFERENCES ${s.TABLE}(${s.COL_STATION_ID}) ON DELETE RESTRICT
+            )
+            """
+        )
+
+        db.execSQL(
+            """
+            INSERT INTO bookings_new (
+                ${b.COL_BOOKING_ID}, ${b.COL_PROSUMER_NIC}, ${b.COL_STATION_ID}, ${b.COL_BOOKING_DATE}, ${b.COL_BOOKING_TIME},
+                ${b.COL_ENERGY_AMOUNT}, ${b.COL_STATUS}, ${b.COL_SYNC_STATUS}, ${b.COL_CREATED_AT}, ${b.COL_UPDATED_AT}
+            )
+            SELECT
+                ${b.COL_BOOKING_ID}, ${b.COL_PROSUMER_NIC}, ${b.COL_STATION_ID}, ${b.COL_BOOKING_DATE}, ${b.COL_BOOKING_TIME},
+                ${b.COL_ENERGY_AMOUNT},
+                CASE ${b.COL_STATUS} WHEN 'CONFIRMED' THEN 'APPROVED' ELSE ${b.COL_STATUS} END,
+                ${b.COL_SYNC_STATUS}, ${b.COL_CREATED_AT}, ${b.COL_UPDATED_AT}
+            FROM ${b.TABLE}
+            """
+        )
+
+        db.execSQL("DROP TABLE ${b.TABLE}")
+        db.execSQL("ALTER TABLE bookings_new RENAME TO ${b.TABLE}")
+        db.execSQL(b.CREATE_INDEX_PROSUMER)
+        db.execSQL(b.CREATE_INDEX_STATION)
+        db.execSQL(b.CREATE_INDEX_SYNC)
     }
 
     private fun seedStations(db: SQLiteDatabase) {

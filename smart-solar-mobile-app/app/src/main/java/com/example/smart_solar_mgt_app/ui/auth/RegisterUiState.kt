@@ -5,5 +5,7 @@ sealed class RegisterUiState {
     data object Loading : RegisterUiState()
     data class FieldErrors(val errors: Map<RegisterField, String>) : RegisterUiState()
     data class FormError(val message: String) : RegisterUiState()
-    data object Success : RegisterUiState()
+
+    /** Account created as PENDING_APPROVAL - no session was started. */
+    data object PendingActivation : RegisterUiState()
 }

@@ -48,6 +48,8 @@ class LocalDbManager(context: Context) {
     fun getUserByNic(nic: String): User? = userDao.getByNic(helper.readableDatabase, nic)
     fun getUserByEmail(email: String): User? = userDao.getByEmail(helper.readableDatabase, email)
     fun getUsersByRole(role: Role): List<User> = userDao.getByRole(helper.readableDatabase, role)
+    fun getUsersByRoleAndStatus(role: Role, status: AccountStatus): List<User> =
+        userDao.getByRoleAndStatus(helper.readableDatabase, role, status)
 
     // ---- Stations ----
 
@@ -68,26 +70,37 @@ class LocalDbManager(context: Context) {
     fun getBookingStatusCounts(nic: String): Map<BookingStatus, Int> = bookingDao.getStatusCounts(helper.readableDatabase, nic)
     fun getUpcomingBooking(nic: String, nowDate: String, nowTime: String): Booking? =
         bookingDao.getUpcoming(helper.readableDatabase, nic, nowDate, nowTime)
+    fun getApprovedFutureCount(nic: String, nowDate: String, nowTime: String): Int =
+        bookingDao.countApprovedFuture(helper.readableDatabase, nic, nowDate, nowTime)
 
     /** Single JOIN query backing the whole My Bookings screen - tabs/search are applied in-memory on top of this. */
-    fun getBookingListItems(nic: String): List<BookingListItem> {
+    fun getBookingListItems(nic: String): List<BookingListItem> =
+        queryBookingListItems(whereProsumerNic = nic)
+
+    /** Cross-prosumer variant backing the Grid Operator's Bookings overview - same JOIN, no nic filter. */
+    fun getAllBookingListItems(): List<BookingListItem> = queryBookingListItems(whereProsumerNic = null)
+
+    private fun queryBookingListItems(whereProsumerNic: String?): List<BookingListItem> {
         val b = DatabaseContract.Bookings
         val s = DatabaseContract.Stations
+        val where = if (whereProsumerNic != null) "WHERE b.${b.COL_PROSUMER_NIC} = ?" else ""
         val sql = """
-            SELECT b.${b.COL_BOOKING_ID}, b.${b.COL_BOOKING_DATE}, b.${b.COL_BOOKING_TIME},
+            SELECT b.${b.COL_BOOKING_ID}, b.${b.COL_PROSUMER_NIC}, b.${b.COL_BOOKING_DATE}, b.${b.COL_BOOKING_TIME},
                    b.${b.COL_ENERGY_AMOUNT}, b.${b.COL_STATUS}, b.${b.COL_SYNC_STATUS},
                    s.${s.COL_STATION_ID}, s.${s.COL_STATION_NAME}
             FROM ${b.TABLE} b
             JOIN ${s.TABLE} s ON s.${s.COL_STATION_ID} = b.${b.COL_STATION_ID}
-            WHERE b.${b.COL_PROSUMER_NIC} = ?
+            $where
             ORDER BY b.${b.COL_BOOKING_DATE} DESC, b.${b.COL_BOOKING_TIME} DESC
         """
-        helper.readableDatabase.rawQuery(sql, arrayOf(nic)).use { cursor ->
+        val args = if (whereProsumerNic != null) arrayOf(whereProsumerNic) else null
+        helper.readableDatabase.rawQuery(sql, args).use { cursor ->
             val results = mutableListOf<BookingListItem>()
             while (cursor.moveToNext()) {
                 results.add(
                     BookingListItem(
                         bookingId = cursor.getString(cursor.getColumnIndexOrThrow(b.COL_BOOKING_ID)),
+                        prosumerNic = cursor.getString(cursor.getColumnIndexOrThrow(b.COL_PROSUMER_NIC)),
                         stationId = cursor.getString(cursor.getColumnIndexOrThrow(s.COL_STATION_ID)),
                         stationName = cursor.getString(cursor.getColumnIndexOrThrow(s.COL_STATION_NAME)),
                         bookingDate = cursor.getString(cursor.getColumnIndexOrThrow(b.COL_BOOKING_DATE)),
@@ -107,6 +120,7 @@ class LocalDbManager(context: Context) {
     fun getTransactionById(transactionId: String): Transaction? = transactionDao.getById(helper.readableDatabase, transactionId)
     fun getTransactionByQrToken(qrToken: String): Transaction? = transactionDao.getByQrToken(helper.readableDatabase, qrToken)
     fun getTransactionByBookingId(bookingId: String): Transaction? = transactionDao.getByBookingId(helper.readableDatabase, bookingId)
+    fun getActiveTransactionForBooking(bookingId: String): Transaction? = transactionDao.getActiveForBooking(helper.readableDatabase, bookingId)
     fun getPendingTransfersCount(): Int = transactionDao.countByStatus(helper.readableDatabase, TransactionStatus.GENERATED)
     fun getCompletedTransfersCount(startMillis: Long, endMillis: Long): Int =
         transactionDao.countCompletedBetween(helper.readableDatabase, startMillis, endMillis)
@@ -181,7 +195,7 @@ class LocalDbManager(context: Context) {
         try {
             val current = bookingDao.getById(db, bookingId) ?: return AppResult.Failure(AppError.NotFound)
             if (current.prosumerNic != prosumerNic) return AppResult.Failure(AppError.Unauthorized)
-            if (current.status != BookingStatus.PENDING && current.status != BookingStatus.CONFIRMED) {
+            if (current.status != BookingStatus.PENDING && current.status != BookingStatus.APPROVED) {
                 return AppResult.Failure(AppError.InvalidStatusTransition)
             }
             if (!canModifyOrCancel(current)) return AppResult.Failure(AppError.TooLateToModify)
@@ -206,7 +220,7 @@ class LocalDbManager(context: Context) {
         try {
             val current = bookingDao.getById(db, bookingId) ?: return AppResult.Failure(AppError.NotFound)
             if (current.prosumerNic != prosumerNic) return AppResult.Failure(AppError.Unauthorized)
-            if (current.status != BookingStatus.PENDING && current.status != BookingStatus.CONFIRMED) {
+            if (current.status != BookingStatus.PENDING && current.status != BookingStatus.APPROVED) {
                 return AppResult.Failure(AppError.InvalidStatusTransition)
             }
             if (!canModifyOrCancel(current)) return AppResult.Failure(AppError.TooLateToModify)
@@ -225,7 +239,7 @@ class LocalDbManager(context: Context) {
     }
 
     /**
-     * PENDING -> CONFIRMED, plus generates the QR transaction row (Energy Transfer Pass).
+     * PENDING -> APPROVED, plus generates the QR transaction row (Energy Transfer Pass).
      * The signed token itself is computed by the caller (QrTokenService, a core.security
      * concern) - this just persists it atomically alongside the status change.
      */
@@ -237,7 +251,7 @@ class LocalDbManager(context: Context) {
             if (current.status != BookingStatus.PENDING) return AppResult.Failure(AppError.InvalidStatusTransition)
 
             val now = System.currentTimeMillis()
-            bookingDao.updateStatus(db, bookingId, BookingStatus.CONFIRMED, SyncStatus.PENDING_SYNC, now)
+            bookingDao.updateStatus(db, bookingId, BookingStatus.APPROVED, SyncStatus.PENDING_SYNC, now)
 
             val transaction = Transaction(
                 transactionId = transactionId,
@@ -271,6 +285,33 @@ class LocalDbManager(context: Context) {
 
             db.setTransactionSuccessful()
             return AppResult.Success(Unit)
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /**
+     * Scan QR completion: marks the transaction COMPLETED (with operator + timestamp) and its
+     * booking COMPLETED, atomically. Re-checks both the transaction's and booking's current
+     * status inside the transaction - a token that's already been scanned/completed, or whose
+     * booking was cancelled after the QR was generated, must fail here even if the caller's
+     * earlier signature/expiry check passed.
+     */
+    fun completeTransaction(transactionId: String, operatorNic: String, now: Long): AppResult<Transaction> {
+        val db = helper.writableDatabase
+        db.beginTransaction()
+        try {
+            val transaction = transactionDao.getById(db, transactionId) ?: return AppResult.Failure(AppError.NotFound)
+            if (transaction.status != TransactionStatus.GENERATED) return AppResult.Failure(AppError.InvalidStatusTransition)
+
+            val booking = bookingDao.getById(db, transaction.bookingId) ?: return AppResult.Failure(AppError.NotFound)
+            if (booking.status != BookingStatus.APPROVED) return AppResult.Failure(AppError.InvalidStatusTransition)
+
+            transactionDao.updateStatus(db, transactionId, TransactionStatus.COMPLETED, operatorNic, now)
+            bookingDao.updateStatus(db, booking.bookingId, BookingStatus.COMPLETED, SyncStatus.PENDING_SYNC, now)
+
+            db.setTransactionSuccessful()
+            return AppResult.Success(transactionDao.getById(db, transactionId)!!)
         } finally {
             db.endTransaction()
         }

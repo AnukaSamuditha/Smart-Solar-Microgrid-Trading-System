@@ -11,8 +11,11 @@ interface BookingRepository {
     /** Raw counts keyed by every status the prosumer has at least one booking in. */
     fun getStatusCounts(nic: String): Map<BookingStatus, Int>
 
-    /** Soonest active (PENDING/CONFIRMED) booking at or after now. */
+    /** Soonest APPROVED booking strictly later than now. */
     fun getUpcomingBooking(nic: String): Booking?
+
+    /** Count of this prosumer's APPROVED bookings strictly later than now. */
+    fun getApprovedFutureCount(nic: String): Int
 
     fun getBookingById(bookingId: String): Booking?
 
@@ -48,9 +51,12 @@ interface BookingRepository {
      */
     fun getAllPendingBookings(): List<Booking>
 
-    /** GRID_OPERATOR only. PENDING -> CONFIRMED, and generates the QR transaction (Energy Transfer Pass). */
+    /** GRID_OPERATOR only. PENDING -> APPROVED, and generates the QR transaction (Energy Transfer Pass). */
     fun approveBooking(bookingId: String): AppResult<Booking>
 
     /** GRID_OPERATOR only. PENDING -> CANCELLED (same terminal state a prosumer-initiated cancel uses), restores the station slot. */
     fun rejectBooking(bookingId: String): AppResult<Unit>
+
+    /** GRID_OPERATOR only. Cross-prosumer, every status - the read-only Bookings overview tab. */
+    fun getAllBookingListItems(): List<BookingListItem>
 }

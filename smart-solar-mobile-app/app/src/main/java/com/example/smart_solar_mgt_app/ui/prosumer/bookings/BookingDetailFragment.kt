@@ -16,7 +16,10 @@ import com.example.smart_solar_mgt_app.core.common.AppResult
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.Booking
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
+import com.example.smart_solar_mgt_app.ui.prosumer.bookingsummary.BookingActionSummaryFragment
+import com.example.smart_solar_mgt_app.ui.prosumer.bookingsummary.BookingActionType
 import com.example.smart_solar_mgt_app.ui.prosumer.newbooking.NewBookingFragment
+import com.example.smart_solar_mgt_app.ui.prosumer.qrpass.QrPassFragment
 import com.example.smart_solar_mgt_app.util.BookingTimeRules
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +48,7 @@ class BookingDetailFragment : Fragment(R.layout.fragment_booking_detail) {
         val tvEnergy = view.findViewById<TextView>(R.id.tvDetailEnergy)
         val tvStatus = view.findViewById<TextView>(R.id.tvDetailStatus)
         val tvSyncStatus = view.findViewById<TextView>(R.id.tvDetailSyncStatus)
+        val btnViewQr = view.findViewById<MaterialButton>(R.id.btnViewQr)
         val btnModify = view.findViewById<MaterialButton>(R.id.btnModify)
         val btnCancel = view.findViewById<MaterialButton>(R.id.btnCancel)
         val tvNoticeHelper = view.findViewById<TextView>(R.id.tvNoticeHelper)
@@ -66,19 +70,24 @@ class BookingDetailFragment : Fragment(R.layout.fragment_booking_detail) {
             tvStatus.text = "Status: ${booking.status.name}"
             tvSyncStatus.text = "Sync: ${booking.syncStatus.name}"
 
-            val isActiveStatus = booking.status == BookingStatus.PENDING || booking.status == BookingStatus.CONFIRMED
+            val isActiveStatus = booking.status == BookingStatus.PENDING || booking.status == BookingStatus.APPROVED
             val canAct = isActiveStatus && BookingTimeRules.canModifyOrCancel(
                 booking.status,
                 LocalDate.parse(booking.bookingDate),
                 LocalTime.parse(booking.bookingTime)
             )
 
+            btnViewQr.isVisible = booking.status == BookingStatus.APPROVED
             btnModify.isVisible = isActiveStatus
             btnCancel.isVisible = isActiveStatus
             btnModify.isEnabled = canAct
             btnCancel.isEnabled = canAct
             tvNoticeHelper.isVisible = isActiveStatus && !canAct
 
+            btnViewQr.setOnClickListener {
+                val args = Bundle().apply { putString(QrPassFragment.ARG_BOOKING_ID, booking.bookingId) }
+                findNavController().navigate(R.id.action_global_qrPassFragment, args)
+            }
             btnModify.setOnClickListener {
                 val args = Bundle().apply { putString(NewBookingFragment.ARG_BOOKING_ID, booking.bookingId) }
                 findNavController().navigate(R.id.action_bookingDetailFragment_to_newBookingFragment, args)
@@ -102,8 +111,11 @@ class BookingDetailFragment : Fragment(R.layout.fragment_booking_detail) {
             val result = withContext(Dispatchers.IO) { ServiceLocator.bookingRepository.cancelBooking(bookingId, nic) }
             when (result) {
                 is AppResult.Success -> {
-                    Toast.makeText(requireContext(), "Reservation cancelled", Toast.LENGTH_SHORT).show()
-                    findNavController().popBackStack()
+                    val args = Bundle().apply {
+                        putString(BookingActionSummaryFragment.ARG_BOOKING_ID, bookingId)
+                        putString(BookingActionSummaryFragment.ARG_ACTION_TYPE, BookingActionType.CANCELLED.name)
+                    }
+                    findNavController().navigate(R.id.action_bookingDetailFragment_to_bookingActionSummaryFragment, args)
                 }
                 is AppResult.Failure -> {
                     val message = when (result.error) {

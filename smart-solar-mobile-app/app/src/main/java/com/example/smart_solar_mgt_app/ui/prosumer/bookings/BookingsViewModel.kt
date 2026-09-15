@@ -11,6 +11,7 @@ import com.example.smart_solar_mgt_app.domain.model.BookingStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
 
 /**
  * One base query (BookingRepository.getBookingListItems) backs the whole screen; tab scope and
@@ -27,6 +28,7 @@ class BookingsViewModel(
     private var allItems: List<BookingListItem> = emptyList()
     private var currentScope: BookingScope = BookingScope.CURRENT
     private var currentQuery: String = ""
+    private var currentDateFilter: LocalDate? = null
 
     fun load() {
         val nic = securityManager.currentSession()?.userId ?: return
@@ -47,22 +49,40 @@ class BookingsViewModel(
         applyFilters()
     }
 
+    fun onDateFilterSelected(date: LocalDate) {
+        currentDateFilter = date
+        applyFilters()
+    }
+
+    fun onDateFilterCleared() {
+        currentDateFilter = null
+        applyFilters()
+    }
+
+    fun onFiltersCleared() {
+        currentQuery = ""
+        currentDateFilter = null
+        applyFilters()
+    }
+
     private fun applyFilters() {
         val scoped = allItems.filter { matchesScope(it, currentScope) }
         if (scoped.isEmpty()) {
             _state.value = BookingsUiState.EmptyScope
             return
         }
-        val searched = if (currentQuery.isBlank()) {
-            scoped
-        } else {
-            scoped.filter { it.stationName.contains(currentQuery, ignoreCase = true) }
+        var narrowed = scoped
+        if (currentQuery.isNotBlank()) {
+            narrowed = narrowed.filter { it.stationName.contains(currentQuery, ignoreCase = true) }
         }
-        _state.value = if (searched.isEmpty()) BookingsUiState.NoResults else BookingsUiState.Loaded(searched)
+        currentDateFilter?.let { date ->
+            narrowed = narrowed.filter { it.bookingDate == date.toString() }
+        }
+        _state.value = if (narrowed.isEmpty()) BookingsUiState.NoResults else BookingsUiState.Loaded(narrowed)
     }
 
     private fun matchesScope(item: BookingListItem, scope: BookingScope): Boolean = when (scope) {
-        BookingScope.CURRENT -> item.status == BookingStatus.CONFIRMED
+        BookingScope.CURRENT -> item.status == BookingStatus.APPROVED
         BookingScope.PENDING -> item.status == BookingStatus.PENDING
         BookingScope.HISTORY -> item.status in setOf(BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.EXPIRED)
     }

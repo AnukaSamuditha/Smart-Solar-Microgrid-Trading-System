@@ -20,7 +20,7 @@ object BookingTimeRules {
         Duration.between(LocalDateTime.now(), LocalDateTime.of(bookingDate, bookingTime))
 
     fun canModifyOrCancel(status: BookingStatus, bookingDate: LocalDate, bookingTime: LocalTime): Boolean {
-        if (status != BookingStatus.PENDING && status != BookingStatus.CONFIRMED) return false
+        if (status != BookingStatus.PENDING && status != BookingStatus.APPROVED) return false
         return hoursRemaining(bookingDate, bookingTime) >= NOTICE_PERIOD
     }
 }

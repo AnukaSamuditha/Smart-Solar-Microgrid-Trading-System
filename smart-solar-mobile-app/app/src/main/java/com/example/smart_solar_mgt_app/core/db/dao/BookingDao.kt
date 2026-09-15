@@ -46,7 +46,7 @@ class BookingDao {
         }
     }
 
-    /** status_counts grouped for one prosumer, e.g. {PENDING=2, CONFIRMED=1}. */
+    /** status_counts grouped for one prosumer, e.g. {PENDING=2, APPROVED=1}. */
     fun getStatusCounts(db: SQLiteDatabase, nic: String): Map<BookingStatus, Int> {
         val sql = "SELECT ${Bookings.COL_STATUS}, COUNT(*) AS cnt FROM ${Bookings.TABLE} " +
             "WHERE ${Bookings.COL_PROSUMER_NIC} = ? GROUP BY ${Bookings.COL_STATUS}"
@@ -60,14 +60,32 @@ class BookingDao {
         }
     }
 
-    /** Soonest active (PENDING/CONFIRMED) booking at or after [nowDate]/[nowTime]. */
+    /**
+     * Shared "strictly later than [nowDate]/[nowTime]" predicate, used by both getUpcoming and
+     * countApprovedFuture so the two can never silently disagree about what "future" means.
+     * Relies on booking_date/booking_time being consistently zero-padded ISO strings (DateFormats)
+     * so lexicographic string comparison is equivalent to chronological comparison.
+     */
+    private fun laterThanNowPredicate(): String =
+        "(${Bookings.COL_BOOKING_DATE} > ? OR (${Bookings.COL_BOOKING_DATE} = ? AND ${Bookings.COL_BOOKING_TIME} > ?))"
+
+    /** Soonest APPROVED booking strictly later than [nowDate]/[nowTime]. */
     fun getUpcoming(db: SQLiteDatabase, nic: String, nowDate: String, nowTime: String): Booking? {
-        val selection = "${Bookings.COL_PROSUMER_NIC} = ? " +
-            "AND ${Bookings.COL_STATUS} IN ('PENDING','CONFIRMED') " +
-            "AND (${Bookings.COL_BOOKING_DATE} > ? OR (${Bookings.COL_BOOKING_DATE} = ? AND ${Bookings.COL_BOOKING_TIME} >= ?))"
+        val selection = "${Bookings.COL_PROSUMER_NIC} = ? AND ${Bookings.COL_STATUS} = 'APPROVED' AND " +
+            laterThanNowPredicate()
         val orderBy = "${Bookings.COL_BOOKING_DATE} ASC, ${Bookings.COL_BOOKING_TIME} ASC"
         db.query(Bookings.TABLE, null, selection, arrayOf(nic, nowDate, nowDate, nowTime), null, null, orderBy, "1").use { cursor ->
             return if (cursor.moveToFirst()) cursor.toBooking() else null
+        }
+    }
+
+    /** Count of this prosumer's APPROVED bookings strictly later than [nowDate]/[nowTime]. */
+    fun countApprovedFuture(db: SQLiteDatabase, nic: String, nowDate: String, nowTime: String): Int {
+        val sql = "SELECT COUNT(*) FROM ${Bookings.TABLE} " +
+            "WHERE ${Bookings.COL_PROSUMER_NIC} = ? AND ${Bookings.COL_STATUS} = 'APPROVED' AND " +
+            laterThanNowPredicate()
+        db.rawQuery(sql, arrayOf(nic, nowDate, nowDate, nowTime)).use { cursor ->
+            return if (cursor.moveToFirst()) cursor.getInt(0) else 0
         }
     }
 

@@ -20,7 +20,7 @@
         android:layout_height="match_parent">
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvDebugPending"
+            android:id="@+id/rvDebugPendingUsers"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:paddingVertical="8dp"
@@ -31,7 +31,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="No pending bookings"
+            android:text="No accounts awaiting activation"
             android:visibility="gone" />
 
     </FrameLayout>

@@ -8,10 +8,30 @@
         android:id="@+id/action_global_newBookingFragment"
         app:destination="@id/newBookingFragment" />
 
+    <action
+        android:id="@+id/action_global_qrPassFragment"
+        app:destination="@id/qrPassFragment" />
+
     <fragment
         android:id="@+id/newBookingFragment"
         android:name="com.example.smart_solar_mgt_app.ui.prosumer.newbooking.NewBookingFragment"
-        android:label="New Booking" />
+        android:label="New Booking">
+        <action
+            android:id="@+id/action_newBookingFragment_to_bookingActionSummaryFragment"
+            app:destination="@id/bookingActionSummaryFragment"
+            app:popUpTo="@id/newBookingFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/bookingActionSummaryFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.prosumer.bookingsummary.BookingActionSummaryFragment"
+        android:label="Reservation Summary" />
+
+    <fragment
+        android:id="@+id/qrPassFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.prosumer.qrpass.QrPassFragment"
+        android:label="Energy Transfer Pass" />
 
     <fragment
         android:id="@+id/homeFragment"
@@ -34,6 +54,11 @@
         <action
             android:id="@+id/action_bookingDetailFragment_to_newBookingFragment"
             app:destination="@id/newBookingFragment" />
+        <action
+            android:id="@+id/action_bookingDetailFragment_to_bookingActionSummaryFragment"
+            app:destination="@id/bookingActionSummaryFragment"
+            app:popUpTo="@id/bookingDetailFragment"
+            app:popUpToInclusive="true" />
     </fragment>
 
     <fragment

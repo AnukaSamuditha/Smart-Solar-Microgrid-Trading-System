@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smart_solar_mgt_app.core.security.LoginResult
 import com.example.smart_solar_mgt_app.core.security.SecurityManager
+import com.example.smart_solar_mgt_app.domain.model.AccountStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -34,11 +35,17 @@ class LoginViewModel(private val securityManager: SecurityManager) : ViewModel()
             _state.value = when (result) {
                 is LoginResult.Success -> LoginUiState.Success(result.session.role)
                 LoginResult.InvalidCredentials -> LoginUiState.FormError("Invalid NIC or password")
-                is LoginResult.AccountNotActive -> {
-                    val status = result.status.name.lowercase().replace('_', ' ')
-                    LoginUiState.FormError("Your account is $status. Contact support.")
-                }
+                is LoginResult.AccountNotActive -> LoginUiState.FormError(messageFor(result.status))
             }
         }
+    }
+
+    private fun messageFor(status: AccountStatus): String = when (status) {
+        AccountStatus.PENDING_APPROVAL -> "Your account is awaiting activation. Please try again later."
+        AccountStatus.DEACTIVATED -> "Your account has been deactivated."
+        AccountStatus.SUSPENDED -> "Your account is suspended. Contact support."
+        AccountStatus.REJECTED -> "Your account registration was rejected. Contact support."
+        AccountStatus.ACTIVE, AccountStatus.DEACTIVATION_REQUESTED ->
+            "Your account cannot log in right now. Contact support." // shouldn't happen - AccountLoginPolicy allows both
     }
 }

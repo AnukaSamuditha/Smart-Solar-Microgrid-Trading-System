@@ -47,7 +47,7 @@ class BookingsAdapter(
 
         private fun colorFor(status: BookingStatus): Int = when (status) {
             BookingStatus.PENDING -> Color.parseColor("#F9A825")
-            BookingStatus.CONFIRMED -> Color.parseColor("#2E7D32")
+            BookingStatus.APPROVED -> Color.parseColor("#2E7D32")
             BookingStatus.COMPLETED -> Color.parseColor("#1565C0")
             BookingStatus.CANCELLED -> Color.parseColor("#C62828")
             BookingStatus.EXPIRED -> Color.parseColor("#757575")

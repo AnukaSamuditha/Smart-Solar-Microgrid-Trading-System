@@ -6,7 +6,6 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.ProgressBar
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -18,6 +17,8 @@ import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.Booking
 import com.example.smart_solar_mgt_app.domain.model.SolarStation
+import com.example.smart_solar_mgt_app.ui.prosumer.bookingsummary.BookingActionSummaryFragment
+import com.example.smart_solar_mgt_app.ui.prosumer.bookingsummary.BookingActionType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -217,25 +218,18 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
                 fieldLayouts[field]?.error = message
             }
             is NewBookingFormState.FormError -> Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
-            is NewBookingFormState.Created -> showSummary("Reservation Created", state.station, state.booking)
-            is NewBookingFormState.Updated -> showSummary("Reservation Updated", state.station, state.booking)
+            is NewBookingFormState.Created -> navigateToSummary(state.booking.bookingId, BookingActionType.CREATED)
+            is NewBookingFormState.Updated -> navigateToSummary(state.booking.bookingId, BookingActionType.UPDATED)
             NewBookingFormState.Idle, NewBookingFormState.Saving -> Unit
         }
     }
 
-    private fun showSummary(title: String, station: SolarStation, booking: Booking) {
-        val message = "Station: ${station.stationName}\n" +
-            "Date: ${booking.bookingDate}\n" +
-            "Time: ${booking.bookingTime}\n" +
-            "Energy: ${booking.energyAmount} kWh\n" +
-            "Status: ${booking.status.name}"
-
-        AlertDialog.Builder(requireContext())
-            .setTitle(title)
-            .setMessage(message)
-            .setCancelable(false)
-            .setPositiveButton("Done") { _, _ -> findNavController().popBackStack() }
-            .show()
+    private fun navigateToSummary(bookingId: String, actionType: BookingActionType) {
+        val args = Bundle().apply {
+            putString(BookingActionSummaryFragment.ARG_BOOKING_ID, bookingId)
+            putString(BookingActionSummaryFragment.ARG_ACTION_TYPE, actionType.name)
+        }
+        findNavController().navigate(R.id.action_newBookingFragment_to_bookingActionSummaryFragment, args)
     }
 
     companion object {

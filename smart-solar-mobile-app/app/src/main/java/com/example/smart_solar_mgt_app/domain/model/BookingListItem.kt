@@ -6,6 +6,7 @@ import com.example.smart_solar_mgt_app.core.common.SyncStatus
  * so the adapter never needs a per-row station lookup. */
 data class BookingListItem(
     val bookingId: String,
+    val prosumerNic: String,
     val stationId: String,
     val stationName: String,
     val bookingDate: String,

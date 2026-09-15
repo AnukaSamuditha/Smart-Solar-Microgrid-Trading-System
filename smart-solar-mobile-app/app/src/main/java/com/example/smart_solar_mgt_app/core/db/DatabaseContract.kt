@@ -7,7 +7,7 @@ package com.example.smart_solar_mgt_app.core.db
 object DatabaseContract {
 
     const val DATABASE_NAME = "smart_solar.db"
-    const val DATABASE_VERSION = 1
+    const val DATABASE_VERSION = 2
 
     object Users {
         const val TABLE = "users"
@@ -84,7 +84,7 @@ object DatabaseContract {
                 $COL_BOOKING_TIME TEXT NOT NULL,
                 $COL_ENERGY_AMOUNT REAL NOT NULL,
                 $COL_STATUS TEXT NOT NULL DEFAULT 'PENDING'
-                    CHECK($COL_STATUS IN ('PENDING','CONFIRMED','CANCELLED','COMPLETED','EXPIRED')),
+                    CHECK($COL_STATUS IN ('PENDING','APPROVED','CANCELLED','COMPLETED','EXPIRED')),
                 $COL_SYNC_STATUS TEXT NOT NULL DEFAULT 'LOCAL_ONLY'
                     CHECK($COL_SYNC_STATUS IN ('LOCAL_ONLY','PENDING_SYNC','SYNCED','SYNC_FAILED')),
                 $COL_CREATED_AT INTEGER NOT NULL,

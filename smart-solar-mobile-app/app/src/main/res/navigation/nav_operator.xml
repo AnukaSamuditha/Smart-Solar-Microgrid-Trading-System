@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_operator"
+    app:startDestination="@id/operatorHomeFragment">
+
+    <fragment
+        android:id="@+id/operatorHomeFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.gridoperator.home.OperatorHomeFragment"
+        android:label="Home" />
+
+    <fragment
+        android:id="@+id/operatorScanFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.gridoperator.scan.OperatorScanFragment"
+        android:label="Scan QR" />
+
+    <fragment
+        android:id="@+id/operatorBookingsFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.gridoperator.bookings.OperatorBookingsFragment"
+        android:label="Bookings" />
+
+    <fragment
+        android:id="@+id/operatorMapFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.gridoperator.map.OperatorMapFragment"
+        android:label="Map" />
+
+</navigation>

@@ -38,7 +38,9 @@ class HomeViewModel(
 
         val counts = BookingCounts(
             pending = rawCounts[BookingStatus.PENDING] ?: 0,
-            confirmed = rawCounts[BookingStatus.CONFIRMED] ?: 0,
+            // Approved-and-still-upcoming, not an all-time count - a booking whose slot already
+            // passed shouldn't keep inflating this number forever.
+            approved = bookingRepository.getApprovedFutureCount(nic),
             completed = rawCounts[BookingStatus.COMPLETED] ?: 0
         )
 
@@ -46,6 +48,7 @@ class HomeViewModel(
         val upcoming = upcomingBooking?.let { booking ->
             val stationName = stationRepository.getStationById(booking.stationId)?.stationName ?: "Unknown station"
             UpcomingBooking(
+                bookingId = booking.bookingId,
                 stationName = stationName,
                 dateLabel = booking.bookingDate,
                 timeLabel = booking.bookingTime,

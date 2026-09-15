@@ -5,14 +5,13 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.di.ServiceLocator
-import com.example.smart_solar_mgt_app.domain.model.Role
-import com.example.smart_solar_mgt_app.ui.common.RoleRouter
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -109,8 +108,17 @@ class RegisterActivity : AppCompatActivity() {
                 fieldLayouts[field]?.error = message
             }
             is RegisterUiState.FormError -> Toast.makeText(this, state.message, Toast.LENGTH_LONG).show()
-            RegisterUiState.Success -> RoleRouter.routeTo(this, Role.PROSUMER)
+            RegisterUiState.PendingActivation -> showPendingActivationDialog()
             RegisterUiState.Idle, RegisterUiState.Loading -> Unit
         }
+    }
+
+    private fun showPendingActivationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Registration Successful")
+            .setMessage("Your account is awaiting activation. You'll be able to log in once it's approved.")
+            .setCancelable(false)
+            .setPositiveButton("OK") { _, _ -> finish() }
+            .show()
     }
 }

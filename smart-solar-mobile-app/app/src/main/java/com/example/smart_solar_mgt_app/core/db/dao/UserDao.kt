@@ -47,6 +47,15 @@ class UserDao {
         }
     }
 
+    fun getByRoleAndStatus(db: SQLiteDatabase, role: Role, status: AccountStatus): List<User> {
+        val selection = "${Users.COL_ROLE} = ? AND ${Users.COL_ACCOUNT_STATUS} = ?"
+        db.query(Users.TABLE, null, selection, arrayOf(role.name, status.name), null, null, null).use { cursor ->
+            val results = mutableListOf<User>()
+            while (cursor.moveToNext()) results.add(cursor.toUser())
+            return results
+        }
+    }
+
     private fun User.toContentValues(): ContentValues = ContentValues().apply {
         put(Users.COL_NIC, nic)
         put(Users.COL_NAME, name)

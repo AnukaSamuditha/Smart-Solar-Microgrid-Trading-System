@@ -9,10 +9,10 @@ import com.example.smart_solar_mgt_app.domain.model.BookingListItem
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
 import com.example.smart_solar_mgt_app.domain.model.Role
 import com.example.smart_solar_mgt_app.util.DateFormats
+import com.example.smart_solar_mgt_app.util.TransactionRules
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 class BookingRepositoryImpl(
     private val localDbManager: LocalDbManager,
@@ -23,11 +23,11 @@ class BookingRepositoryImpl(
     override fun getStatusCounts(nic: String): Map<BookingStatus, Int> =
         localDbManager.getBookingStatusCounts(nic)
 
-    override fun getUpcomingBooking(nic: String): Booking? {
-        val nowDate = LocalDate.now().toString()
-        val nowTime = LocalTime.now().format(DateFormats.TIME_FORMATTER)
-        return localDbManager.getUpcomingBooking(nic, nowDate, nowTime)
-    }
+    override fun getUpcomingBooking(nic: String): Booking? =
+        localDbManager.getUpcomingBooking(nic, DateFormats.nowDateString(), DateFormats.nowTimeString())
+
+    override fun getApprovedFutureCount(nic: String): Int =
+        localDbManager.getApprovedFutureCount(nic, DateFormats.nowDateString(), DateFormats.nowTimeString())
 
     override fun getBookingById(bookingId: String): Booking? = localDbManager.getBookingById(bookingId)
 
@@ -76,7 +76,7 @@ class BookingRepositoryImpl(
     override fun approveBooking(bookingId: String): AppResult<Booking> {
         securityManager.requireRole(Role.GRID_OPERATOR)
         val transactionId = UUID.randomUUID().toString()
-        val expiryMillis = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(TRANSACTION_TTL_HOURS)
+        val expiryMillis = TransactionRules.expiryMillis(System.currentTimeMillis())
         val qrToken = qrTokenService.sign(transactionId, bookingId, expiryMillis)
         return localDbManager.approveBooking(bookingId, transactionId, qrToken)
     }
@@ -86,7 +86,8 @@ class BookingRepositoryImpl(
         return localDbManager.rejectBooking(bookingId)
     }
 
-    private companion object {
-        const val TRANSACTION_TTL_HOURS = 24L
+    override fun getAllBookingListItems(): List<BookingListItem> {
+        securityManager.requireRole(Role.GRID_OPERATOR)
+        return localDbManager.getAllBookingListItems()
     }
 }

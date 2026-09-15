@@ -1,12 +1,9 @@
 package com.example.smart_solar_mgt_app.ui.prosumer.home
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -16,6 +13,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.di.ServiceLocator
+import com.example.smart_solar_mgt_app.domain.model.BookingStatus
+import com.example.smart_solar_mgt_app.ui.prosumer.qrpass.QrPassFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 
@@ -38,7 +37,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val emptyStateHome = view.findViewById<View>(R.id.emptyStateHome)
         val tvWelcome = view.findViewById<TextView>(R.id.tvWelcome)
         val tvPendingCount = view.findViewById<TextView>(R.id.tvPendingCount)
-        val tvConfirmedCount = view.findViewById<TextView>(R.id.tvConfirmedCount)
+        val tvApprovedCount = view.findViewById<TextView>(R.id.tvApprovedCount)
         val tvCompletedCount = view.findViewById<TextView>(R.id.tvCompletedCount)
         val cardUpcoming = view.findViewById<MaterialCardView>(R.id.cardUpcoming)
         val tvNoUpcoming = view.findViewById<TextView>(R.id.tvNoUpcoming)
@@ -53,7 +52,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val goToNewBooking = { findNavController().navigate(R.id.action_global_newBookingFragment) }
         btnNewBooking.setOnClickListener { goToNewBooking() }
         btnNewBookingEmpty.setOnClickListener { goToNewBooking() }
-        btnViewQr.setOnClickListener { Toast.makeText(requireContext(), "Coming soon", Toast.LENGTH_SHORT).show() }
 
         swipeRefresh.setOnRefreshListener { viewModel.loadDashboard() }
 
@@ -66,7 +64,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             if (state is HomeUiState.Loaded) {
                 tvWelcome.text = "Welcome, ${state.welcomeName}"
                 tvPendingCount.text = state.counts.pending.toString()
-                tvConfirmedCount.text = state.counts.confirmed.toString()
+                tvApprovedCount.text = state.counts.approved.toString()
                 tvCompletedCount.text = state.counts.completed.toString()
 
                 val upcoming = state.upcoming
@@ -77,7 +75,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     tvUpcomingDateTime.text = "${upcoming.dateLabel} at ${upcoming.timeLabel}"
                     tvUpcomingEnergy.text = "${upcoming.energyAmount} kWh"
                     tvUpcomingStatus.text = "Status: ${upcoming.status.name}"
-                    btnViewQr.isVisible = upcoming.status.name == "CONFIRMED"
+                    btnViewQr.isVisible = upcoming.status == BookingStatus.APPROVED
+                    btnViewQr.setOnClickListener {
+                        val args = Bundle().apply { putString(QrPassFragment.ARG_BOOKING_ID, upcoming.bookingId) }
+                        findNavController().navigate(R.id.action_global_qrPassFragment, args)
+                    }
                 }
             }
         }

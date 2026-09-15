@@ -12,6 +12,10 @@ import com.example.smart_solar_mgt_app.data.repository.BookingRepository
 import com.example.smart_solar_mgt_app.data.repository.BookingRepositoryImpl
 import com.example.smart_solar_mgt_app.data.repository.StationRepository
 import com.example.smart_solar_mgt_app.data.repository.StationRepositoryImpl
+import com.example.smart_solar_mgt_app.data.repository.TransactionRepository
+import com.example.smart_solar_mgt_app.data.repository.TransactionRepositoryImpl
+import com.example.smart_solar_mgt_app.data.repository.transaction.LocalTransactionVerificationSource
+import com.example.smart_solar_mgt_app.data.repository.transaction.TransactionVerificationSource
 
 /**
  * Manual dependency container. Managers/repositories are added here as each
@@ -27,6 +31,15 @@ object ServiceLocator {
     val authRepository: AuthRepository by lazy { AuthRepositoryImpl(localDbManager) }
     val bookingRepository: BookingRepository by lazy { BookingRepositoryImpl(localDbManager, securityManager, qrTokenService) }
     val stationRepository: StationRepository by lazy { StationRepositoryImpl(localDbManager) }
+    // The only binding that changes when cross-device server verification ships: swap this for
+    // a RemoteTransactionVerificationSource. TransactionRepositoryImpl and everything above it
+    // (including OperatorScanFragment) never need to change.
+    val transactionVerificationSource: TransactionVerificationSource by lazy {
+        LocalTransactionVerificationSource(localDbManager, qrTokenService)
+    }
+    val transactionRepository: TransactionRepository by lazy {
+        TransactionRepositoryImpl(localDbManager, securityManager, transactionVerificationSource)
+    }
     val securityManager: SecurityManager by lazy {
         SecurityManagerImpl(authRepository, secureSessionStore, qrTokenService)
     }
