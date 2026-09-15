@@ -7,7 +7,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -174,7 +174,7 @@ class OperatorMapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback 
             append("Status: ${station.status.name}\n")
             append("Location: ${station.latitude}, ${station.longitude}")
         }
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(station.stationName)
             .setMessage(message)
             .setNegativeButton("Close", null)

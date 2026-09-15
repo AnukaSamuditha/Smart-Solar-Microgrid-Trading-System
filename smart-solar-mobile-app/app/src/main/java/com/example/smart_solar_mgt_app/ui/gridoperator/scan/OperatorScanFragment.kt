@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -194,7 +194,7 @@ class OperatorScanFragment : Fragment(R.layout.fragment_operator_scan) {
     }
 
     private fun showResultDialog(title: String, message: String) {
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(title)
             .setMessage(message)
             .setPositiveButton("OK") { _, _ -> isProcessing = false }

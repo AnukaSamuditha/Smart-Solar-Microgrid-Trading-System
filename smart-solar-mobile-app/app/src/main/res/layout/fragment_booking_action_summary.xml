@@ -1,22 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/solar_background"
     android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="@dimen/spacing_screen_horizontal">
 
         <ProgressBar
             android:id="@+id/progressActionSummary"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="32dp" />
+            android:layout_marginTop="32dp"
+            android:indeterminateTint="@color/solar_primary" />
 
         <TextView
             android:id="@+id/tvActionSummaryError"
@@ -24,7 +27,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
             android:gravity="center"
-            android:textColor="#C62828"
+            android:textColor="@color/status_cancelled"
             android:visibility="gone" />
 
         <LinearLayout
@@ -32,30 +35,49 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:gravity="center_horizontal"
             android:visibility="gone">
+
+            <FrameLayout
+                android:id="@+id/actionIconContainer"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/bg_circle_primary">
+
+                <ImageView
+                    android:id="@+id/ivActionIcon"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_approved"
+                    app:tint="@color/solar_on_primary" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/tvActionHeadline"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="16dp"
+                android:textAppearance="@style/TextAppearance.App.ScreenTitle" />
 
             <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.App.CardView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp">
+                android:layout_marginTop="@dimen/spacing_section_gap">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
 
                     <TextView
                         android:id="@+id/tvSummaryStation"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:textColor="@color/solar_text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -63,33 +85,41 @@
                         android:id="@+id/tvSummaryDateTime"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
+                        android:layout_marginTop="10dp"
+                        android:textColor="@color/solar_text_secondary"
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/tvSummaryEnergy"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/solar_text_secondary"
+                        android:textSize="14sp" />
+
+                    <View style="@style/App.Divider" android:layout_marginVertical="14dp" />
 
                     <TextView
                         android:id="@+id/tvSummaryBookingId"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:textColor="#757575" />
+                        android:textColor="@color/solar_text_muted"
+                        android:textSize="12sp" />
 
                     <TextView
                         android:id="@+id/tvSummaryStatus"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="8dp"
+                        android:textAppearance="@style/TextAppearance.App.StatusText" />
 
                     <TextView
                         android:id="@+id/tvSummarySyncStatus"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:textColor="#757575" />
+                        android:textColor="@color/solar_text_muted"
+                        android:textSize="12sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -101,7 +131,7 @@
             android:id="@+id/btnBackToBookings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="@dimen/spacing_section_gap"
             android:text="Back to Bookings"
             android:visibility="gone" />
 

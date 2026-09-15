@@ -3,20 +3,22 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/solar_background"
     android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="@dimen/spacing_screen_horizontal">
 
         <ProgressBar
             android:id="@+id/progressQrPass"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="32dp" />
+            android:layout_marginTop="32dp"
+            android:indeterminateTint="@color/solar_primary" />
 
         <TextView
             android:id="@+id/tvQrPassError"
@@ -24,7 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
             android:gravity="center"
-            android:textColor="#C62828"
+            android:textColor="@color/status_cancelled"
             android:visibility="gone" />
 
         <LinearLayout
@@ -38,9 +40,9 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:text="Energy Transfer Pass"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:textAppearance="@style/TextAppearance.App.ScreenTitle" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -48,9 +50,11 @@
                 android:layout_marginTop="4dp"
                 android:gravity="center"
                 android:text="Show this QR code to the Grid Operator at the station"
-                android:textColor="#757575" />
+                android:textColor="@color/solar_text_secondary"
+                android:textSize="14sp" />
 
             <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.App.CardView.White"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp">
@@ -64,20 +68,29 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.App.CardView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp">
+                android:layout_marginTop="@dimen/spacing_section_gap">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:text="APPROVED"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:textAppearance="@style/TextAppearance.App.StatusText"
+                        android:textColor="@color/status_approved" />
 
                     <TextView
                         android:id="@+id/tvQrStation"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:textColor="@color/solar_text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -85,27 +98,34 @@
                         android:id="@+id/tvQrDateTime"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
+                        android:layout_marginTop="8dp"
+                        android:textColor="@color/solar_text_secondary"
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/tvQrEnergy"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/solar_text_secondary"
+                        android:textSize="14sp" />
+
+                    <View style="@style/App.Divider" android:layout_marginVertical="14dp" />
 
                     <TextView
                         android:id="@+id/tvQrTransactionId"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:textColor="#757575" />
+                        android:textColor="@color/solar_text_muted"
+                        android:textSize="12sp" />
 
                     <TextView
                         android:id="@+id/tvQrExpiry"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:textColor="#757575" />
+                        android:textColor="@color/solar_text_muted"
+                        android:textSize="12sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

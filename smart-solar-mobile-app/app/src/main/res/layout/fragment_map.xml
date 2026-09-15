@@ -3,7 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/solar_background">
 
     <FrameLayout
         android:id="@+id/mapPane"
@@ -35,16 +36,26 @@
             android:id="@+id/rvStations"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingVertical="8dp"
+            android:background="@color/solar_background"
+            android:paddingTop="72dp"
+            android:paddingBottom="8dp"
             android:clipToPadding="false" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnToggleView"
+        style="@style/Widget.App.Button.Secondary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:backgroundTint="@color/solar_surface_elevated"
         android:text="List View"
+        android:textColor="@color/solar_primary"
+        app:cornerRadius="@dimen/radius_button"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -52,6 +63,7 @@
         android:id="@+id/progressMap"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:indeterminateTint="@color/solar_primary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -62,6 +74,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="No stations available"
+        android:textColor="@color/solar_text_secondary"
+        android:textSize="15sp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -72,10 +86,11 @@
         android:id="@+id/tvMapBanner"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#DD000000"
-        android:textColor="#FFFFFF"
-        android:padding="8dp"
+        android:background="@color/solar_surface_elevated"
+        android:textColor="@color/solar_text_primary"
+        android:padding="10dp"
         android:gravity="center"
+        android:textSize="13sp"
         android:text="You're offline - map tiles may not load"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"

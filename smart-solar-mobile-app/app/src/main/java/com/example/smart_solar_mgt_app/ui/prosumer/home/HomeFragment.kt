@@ -1,5 +1,6 @@
 package com.example.smart_solar_mgt_app.ui.prosumer.home
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.ProgressBar
@@ -74,7 +75,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     tvUpcomingStation.text = upcoming.stationName
                     tvUpcomingDateTime.text = "${upcoming.dateLabel} at ${upcoming.timeLabel}"
                     tvUpcomingEnergy.text = "${upcoming.energyAmount} kWh"
-                    tvUpcomingStatus.text = "Status: ${upcoming.status.name}"
+                    tvUpcomingStatus.text = upcoming.status.name
+                    tvUpcomingStatus.setTextColor(colorFor(upcoming.status))
                     btnViewQr.isVisible = upcoming.status == BookingStatus.APPROVED
                     btnViewQr.setOnClickListener {
                         val args = Bundle().apply { putString(QrPassFragment.ARG_BOOKING_ID, upcoming.bookingId) }
@@ -88,5 +90,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     override fun onResume() {
         super.onResume()
         viewModel.loadDashboard()
+    }
+
+    private fun colorFor(status: BookingStatus): Int = when (status) {
+        BookingStatus.PENDING -> Color.parseColor("#F9A825")
+        BookingStatus.APPROVED -> Color.parseColor("#2E7D32")
+        BookingStatus.COMPLETED -> Color.parseColor("#1565C0")
+        BookingStatus.CANCELLED -> Color.parseColor("#C62828")
+        BookingStatus.EXPIRED -> Color.parseColor("#757575")
     }
 }

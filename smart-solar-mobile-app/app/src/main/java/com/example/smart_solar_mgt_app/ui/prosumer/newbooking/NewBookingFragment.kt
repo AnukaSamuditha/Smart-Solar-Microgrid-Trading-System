@@ -99,6 +99,7 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
 
         if (isEditMode) {
             btnConfirmBooking.text = "Save Changes"
+            view.findViewById<android.widget.TextView>(R.id.tvNewBookingTitle)?.text = "Edit Reservation"
         }
 
         btnConfirmBooking.setOnClickListener {

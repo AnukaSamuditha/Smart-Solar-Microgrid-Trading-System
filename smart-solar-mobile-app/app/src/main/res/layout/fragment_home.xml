@@ -4,7 +4,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/swipeRefreshHome"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/solar_background">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -15,21 +16,60 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:padding="@dimen/spacing_screen_horizontal">
 
-            <TextView
-                android:id="@+id/tvWelcome"
-                android:layout_width="wrap_content"
+            <!-- Greeting header -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SOLAR PROSUMER"
+                        android:textColor="@color/solar_text_muted"
+                        android:textSize="12sp"
+                        android:letterSpacing="0.08"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvWelcome"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="@style/TextAppearance.App.ScreenTitle" />
+                </LinearLayout>
+
+                <FrameLayout
+                    android:layout_width="@dimen/avatar_size"
+                    android:layout_height="@dimen/avatar_size"
+                    android:background="@drawable/bg_circle_surface">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="Prosumer avatar"
+                        android:src="@drawable/ic_nav_profile"
+                        app:tint="@color/solar_primary" />
+                </FrameLayout>
+            </LinearLayout>
 
             <ProgressBar
                 android:id="@+id/progressHome"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="32dp" />
+                android:layout_marginTop="32dp"
+                android:indeterminateTint="@color/solar_primary" />
 
             <LinearLayout
                 android:id="@+id/groupContent"
@@ -38,123 +78,116 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="4dp">
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:gravity="center"
-                            android:padding="12dp">
-                            <TextView
-                                android:id="@+id/tvPendingCount"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textSize="22sp"
-                                android:textStyle="bold" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Pending" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginHorizontal="4dp">
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:gravity="center"
-                            android:padding="12dp">
-                            <TextView
-                                android:id="@+id/tvApprovedCount"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textSize="22sp"
-                                android:textStyle="bold" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Approved" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="4dp">
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:gravity="center"
-                            android:padding="12dp">
-                            <TextView
-                                android:id="@+id/tvCompletedCount"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:textSize="22sp"
-                                android:textStyle="bold" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Completed" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-
+                <!-- Upcoming reservation hero card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardUpcoming"
+                    style="@style/Widget.App.CardView.Elevated2"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="@dimen/spacing_section_gap"
                     android:visibility="gone">
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-                        <TextView
-                            android:layout_width="wrap_content"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Upcoming Reservation"
-                            android:textStyle="bold" />
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <FrameLayout
+                                android:layout_width="40dp"
+                                android:layout_height="40dp"
+                                android:background="@drawable/bg_circle_primary">
+
+                                <ImageView
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_gravity="center"
+                                    android:contentDescription="@null"
+                                    android:src="@drawable/ic_bolt"
+                                    app:tint="@color/solar_on_primary" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="12dp"
+                                android:text="Upcoming Reservation"
+                                android:textAppearance="@style/TextAppearance.App.SectionTitle" />
+                        </LinearLayout>
+
                         <TextView
                             android:id="@+id/tvUpcomingStation"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp" />
-                        <TextView
-                            android:id="@+id/tvUpcomingDateTime"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                        <TextView
-                            android:id="@+id/tvUpcomingEnergy"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_marginTop="16dp"
+                            android:textColor="@color/solar_text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_calendar_small"
+                                app:tint="@color/solar_text_secondary" />
+
+                            <TextView
+                                android:id="@+id/tvUpcomingDateTime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:textColor="@color/solar_text_secondary"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_bolt"
+                                app:tint="@color/solar_text_secondary" />
+
+                            <TextView
+                                android:id="@+id/tvUpcomingEnergy"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:textColor="@color/solar_text_secondary"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+
                         <TextView
                             android:id="@+id/tvUpcomingStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp" />
+                            android:layout_marginTop="14dp"
+                            android:textAppearance="@style/TextAppearance.App.StatusText" />
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnViewQr"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
                             android:text="View QR"
                             android:visibility="gone" />
                     </LinearLayout>
@@ -162,17 +195,134 @@
 
                 <TextView
                     android:id="@+id/tvNoUpcoming"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="@dimen/spacing_section_gap"
+                    android:background="@drawable/bg_info_container"
+                    android:gravity="center"
+                    android:padding="20dp"
                     android:text="No upcoming reservations"
+                    android:textColor="@color/solar_text_secondary"
                     android:visibility="gone" />
+
+                <!-- Reservation metrics -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_section_gap"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.App.CardView.Small"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="@dimen/spacing_card_gap">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:layout_width="@dimen/icon_size_small"
+                                android:layout_height="@dimen/icon_size_small"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_pending"
+                                app:tint="@color/status_pending" />
+
+                            <TextView
+                                android:id="@+id/tvPendingCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:textAppearance="@style/TextAppearance.App.CardValue" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Pending"
+                                android:textAppearance="@style/TextAppearance.App.CardTitle" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.App.CardView.Small"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="@dimen/spacing_small_gap">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:layout_width="@dimen/icon_size_small"
+                                android:layout_height="@dimen/icon_size_small"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_approved"
+                                app:tint="@color/status_approved" />
+
+                            <TextView
+                                android:id="@+id/tvApprovedCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:textAppearance="@style/TextAppearance.App.CardValue" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Approved"
+                                android:textAppearance="@style/TextAppearance.App.CardTitle" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.App.CardView.Small"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="@dimen/spacing_card_gap">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:layout_width="@dimen/icon_size_small"
+                                android:layout_height="@dimen/icon_size_small"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_bolt"
+                                app:tint="@color/status_completed" />
+
+                            <TextView
+                                android:id="@+id/tvCompletedCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:textAppearance="@style/TextAppearance.App.CardValue" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Completed"
+                                android:textAppearance="@style/TextAppearance.App.CardTitle" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnNewBooking"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
+                    android:layout_marginTop="@dimen/spacing_section_gap"
                     android:text="New Booking" />
             </LinearLayout>
 
@@ -182,14 +332,25 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:layout_marginTop="48dp"
+                android:layout_marginTop="64dp"
                 android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_bolt"
+                    app:tint="@color/solar_text_muted" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
                     android:text="No bookings yet"
+                    android:textColor="@color/solar_text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnNewBookingEmpty"
                     android:layout_width="wrap_content"

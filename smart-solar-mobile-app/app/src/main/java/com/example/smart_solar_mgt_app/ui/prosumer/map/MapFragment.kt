@@ -8,7 +8,7 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -177,7 +177,7 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
         }
         val canBook = station.status == StationStatus.ACTIVE && station.availableSlots > 0
 
-        val builder = AlertDialog.Builder(requireContext())
+        val builder = MaterialAlertDialogBuilder(requireContext())
             .setTitle(station.stationName)
             .setMessage(message)
             .setNegativeButton("Close", null)

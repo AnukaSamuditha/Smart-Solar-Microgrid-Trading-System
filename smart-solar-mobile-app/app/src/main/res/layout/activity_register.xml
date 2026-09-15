@@ -4,6 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/solar_background"
     android:fitsSystemWindows="true"
     android:fillViewport="true">
 
@@ -11,15 +12,22 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="@dimen/spacing_screen_horizontal">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="Create Account"
+            android:textAppearance="@style/TextAppearance.App.ScreenTitle" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
             android:layout_marginBottom="24dp"
-            android:text="Create a Prosumer Account"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:text="Register as a Prosumer to reserve solar charging slots"
+            android:textColor="@color/solar_text_secondary"
+            android:textSize="14sp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilNic"
@@ -31,70 +39,76 @@
                 android:id="@+id/etNic"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="text" />
+                android:inputType="text"
+                android:textColor="@color/solar_text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilFullName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/spacing_small_gap"
             android:hint="Full Name">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etFullName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textPersonName" />
+                android:inputType="textPersonName"
+                android:textColor="@color/solar_text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilEmail"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/spacing_small_gap"
             android:hint="Email">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etEmail"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textEmailAddress" />
+                android:inputType="textEmailAddress"
+                android:textColor="@color/solar_text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilPhone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/spacing_small_gap"
             android:hint="Phone">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etPhone"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="phone" />
+                android:inputType="phone"
+                android:textColor="@color/solar_text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilAddress"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/spacing_small_gap"
             android:hint="Address">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etAddress"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textMultiLine" />
+                android:inputType="textMultiLine"
+                android:textColor="@color/solar_text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
+
+        <View style="@style/App.Divider" android:layout_marginVertical="16dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilPassword"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
             app:endIconMode="password_toggle"
             android:hint="Password">
 
@@ -102,14 +116,15 @@
                 android:id="@+id/etPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textPassword" />
+                android:inputType="textPassword"
+                android:textColor="@color/solar_text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilConfirmPassword"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/spacing_small_gap"
             app:endIconMode="password_toggle"
             android:hint="Confirm Password">
 
@@ -117,14 +132,15 @@
                 android:id="@+id/etConfirmPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textPassword" />
+                android:inputType="textPassword"
+                android:textColor="@color/solar_text_primary" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRegister"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="@dimen/spacing_section_gap"
             android:text="Register" />
 
         <ProgressBar
@@ -133,6 +149,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="16dp"
+            android:indeterminateTint="@color/solar_primary"
             android:visibility="gone" />
 
         <TextView
@@ -142,7 +159,8 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="24dp"
             android:padding="8dp"
-            android:text="Already have an account? Login" />
+            android:text="Already have an account? Login"
+            android:textColor="@color/solar_primary" />
 
     </LinearLayout>
 </ScrollView>

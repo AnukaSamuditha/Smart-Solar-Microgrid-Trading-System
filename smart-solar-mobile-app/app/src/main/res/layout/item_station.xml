@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.App.CardView.Small"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
@@ -14,30 +16,56 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tvStationName"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <FrameLayout
+                style="@style/App.IconContainer.Small">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_station"
+                    app:tint="@color/solar_primary" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvStationName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:textColor="@color/solar_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvStationCapacity"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
+            android:layout_marginTop="10dp"
+            android:textColor="@color/solar_text_secondary"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/tvStationSlots"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/solar_text_secondary"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/tvStationStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:textStyle="bold" />
+            android:layout_marginTop="8dp"
+            android:textAppearance="@style/TextAppearance.App.StatusText" />
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

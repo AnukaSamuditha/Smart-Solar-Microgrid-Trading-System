@@ -1,11 +1,12 @@
 package com.example.smart_solar_mgt_app.ui.prosumer.bookings
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -67,7 +68,8 @@ class BookingDetailFragment : Fragment(R.layout.fragment_booking_detail) {
             tvStation.text = stationName
             tvDateTime.text = "${booking.bookingDate} at ${booking.bookingTime}"
             tvEnergy.text = "${booking.energyAmount} kWh"
-            tvStatus.text = "Status: ${booking.status.name}"
+            tvStatus.text = booking.status.name
+            tvStatus.setTextColor(colorFor(booking.status))
             tvSyncStatus.text = "Sync: ${booking.syncStatus.name}"
 
             val isActiveStatus = booking.status == BookingStatus.PENDING || booking.status == BookingStatus.APPROVED
@@ -97,7 +99,7 @@ class BookingDetailFragment : Fragment(R.layout.fragment_booking_detail) {
     }
 
     private fun confirmCancel(booking: Booking) {
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle("Cancel Reservation?")
             .setMessage("$stationName - ${booking.bookingDate} at ${booking.bookingTime}. This cannot be undone.")
             .setPositiveButton("Cancel Reservation") { _, _ -> performCancel(booking.bookingId) }
@@ -127,6 +129,14 @@ class BookingDetailFragment : Fragment(R.layout.fragment_booking_detail) {
                 }
             }
         }
+    }
+
+    private fun colorFor(status: BookingStatus): Int = when (status) {
+        BookingStatus.PENDING -> Color.parseColor("#F9A825")
+        BookingStatus.APPROVED -> Color.parseColor("#2E7D32")
+        BookingStatus.COMPLETED -> Color.parseColor("#1565C0")
+        BookingStatus.CANCELLED -> Color.parseColor("#C62828")
+        BookingStatus.EXPIRED -> Color.parseColor("#757575")
     }
 
     companion object {

@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ===================== Buttons ===================== -->
+
+    <style name="Widget.App.Button.Primary" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/solar_primary</item>
+        <item name="android:textColor">@color/solar_on_primary</item>
+        <item name="cornerRadius">@dimen/radius_button</item>
+        <item name="rippleColor">@color/solar_primary_pressed</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+    </style>
+
+    <style name="Widget.App.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/solar_divider</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textColor">@color/solar_text_primary</item>
+        <item name="cornerRadius">@dimen/radius_button</item>
+        <item name="rippleColor">@color/solar_surface_highlight</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+    </style>
+
+    <style name="Widget.App.Button.Destructive" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">@color/status_cancelled</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textColor">@color/status_cancelled</item>
+        <item name="cornerRadius">@dimen/radius_button</item>
+        <item name="rippleColor">@color/status_cancelled</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+    </style>
+
+    <style name="Widget.App.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/solar_text_secondary</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="rippleColor">@color/solar_surface_highlight</item>
+    </style>
+
+    <!-- ===================== Text inputs ===================== -->
+
+    <style name="Widget.App.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundMode">outline</item>
+        <item name="boxBackgroundColor">@color/solar_input_background</item>
+        <item name="boxStrokeColor">@color/selector_input_stroke</item>
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeWidthFocused">2dp</item>
+        <item name="boxCornerRadiusTopStart">@dimen/radius_input</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/radius_input</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/radius_input</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/radius_input</item>
+        <item name="hintTextColor">@color/solar_text_secondary</item>
+        <item name="android:textColorHint">@color/solar_text_muted</item>
+        <item name="endIconTint">@color/solar_text_secondary</item>
+        <item name="errorTextColor">@color/status_cancelled</item>
+        <item name="boxStrokeErrorColor">@color/status_cancelled</item>
+    </style>
+
+    <!-- ===================== Cards ===================== -->
+
+    <style name="Widget.App.CardView" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/solar_surface</item>
+        <item name="cardCornerRadius">@dimen/radius_card_main</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/solar_divider</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="rippleColor">@color/solar_surface_highlight</item>
+        <item name="contentPadding">@dimen/spacing_card_padding</item>
+    </style>
+
+    <style name="Widget.App.CardView.Small">
+        <item name="cardCornerRadius">@dimen/radius_card_small</item>
+    </style>
+
+    <style name="Widget.App.CardView.Elevated2">
+        <item name="cardBackgroundColor">@color/solar_surface_elevated</item>
+    </style>
+
+    <style name="Widget.App.CardView.White">
+        <item name="cardBackgroundColor">@color/white</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <!-- ===================== Bottom navigation / tabs ===================== -->
+
+    <style name="Widget.App.BottomNavigation" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconTint">@color/selector_nav_item</item>
+        <item name="itemTextColor">@color/selector_nav_item</item>
+        <item name="itemRippleColor">@color/solar_surface_highlight</item>
+        <item name="itemActiveIndicatorStyle">@null</item>
+        <item name="elevation">0dp</item>
+        <item name="labelVisibilityMode">labeled</item>
+    </style>
+
+    <style name="Widget.App.TabLayout" parent="Widget.Material3.TabLayout">
+        <item name="tabTextColor">@color/solar_text_secondary</item>
+        <item name="tabSelectedTextColor">@color/solar_primary</item>
+        <item name="tabIndicatorColor">@color/solar_primary</item>
+        <item name="tabRippleColor">@color/solar_surface_highlight</item>
+        <item name="android:background">@color/solar_background</item>
+    </style>
+
+    <!-- ===================== Dialogs / bottom sheets ===================== -->
+
+    <style name="ThemeOverlay.App.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/solar_surface_elevated</item>
+        <item name="colorOnSurface">@color/solar_text_primary</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.App.Dialog.Button</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.App.Dialog.Button</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.App.Dialog</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Dialog" parent="">
+        <item name="cornerSize">@dimen/radius_dialog</item>
+    </style>
+
+    <style name="Widget.App.Dialog.Button" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/solar_primary</item>
+    </style>
+
+    <style name="ThemeOverlay.App.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.App.BottomSheet</item>
+    </style>
+
+    <style name="Widget.App.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@color/solar_surface_elevated</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.App.BottomSheet</item>
+    </style>
+
+    <style name="ShapeAppearance.App.BottomSheet" parent="">
+        <item name="cornerSizeTopLeft">@dimen/radius_dialog</item>
+        <item name="cornerSizeTopRight">@dimen/radius_dialog</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <!-- ===================== Typography ===================== -->
+
+    <style name="TextAppearance.App.ScreenTitle" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textSize">@dimen/text_screen_title</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/solar_text_primary</item>
+    </style>
+
+    <style name="TextAppearance.App.SectionTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">@dimen/text_section_title</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/solar_text_primary</item>
+    </style>
+
+    <style name="TextAppearance.App.CardValue" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textSize">@dimen/text_card_value</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/solar_text_primary</item>
+    </style>
+
+    <style name="TextAppearance.App.CardTitle" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">@dimen/text_card_title</item>
+        <item name="android:textColor">@color/solar_text_secondary</item>
+    </style>
+
+    <style name="TextAppearance.App.Body" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/solar_text_primary</item>
+    </style>
+
+    <style name="TextAppearance.App.Metadata" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">@dimen/text_metadata</item>
+        <item name="android:textColor">@color/solar_text_muted</item>
+    </style>
+
+    <style name="TextAppearance.App.StatusText" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- ===================== Small structural helpers ===================== -->
+
+    <style name="App.Divider" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">@color/solar_divider</item>
+    </style>
+
+    <style name="App.IconContainer.Small" parent="">
+        <item name="android:layout_width">36dp</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:background">@drawable/bg_circle_surface</item>
+        <item name="android:padding">8dp</item>
+    </style>
+
+</resources>

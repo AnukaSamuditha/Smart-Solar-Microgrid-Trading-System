@@ -2,4 +2,34 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Core dark solar-energy palette -->
+    <color name="solar_background">#090B09</color>
+    <color name="solar_surface">#141714</color>
+    <color name="solar_surface_elevated">#1B1F1B</color>
+    <color name="solar_surface_highlight">#222722</color>
+    <color name="solar_primary">#D9FF43</color>
+    <color name="solar_primary_pressed">#C3EA2E</color>
+    <color name="solar_primary_soft">#EDFF9A</color>
+    <color name="solar_on_primary">#101200</color>
+    <color name="solar_text_primary">#F5F7F3</color>
+    <color name="solar_text_secondary">#A5ADA3</color>
+    <color name="solar_text_muted">#737B72</color>
+    <color name="solar_divider">#2A302A</color>
+    <color name="solar_input_background">#171A17</color>
+    <color name="solar_navigation_background">#131613</color>
+    <color name="solar_nav_unselected">#838A81</color>
+
+    <!-- Semantic status colors - unrelated to the lime accent, never reused for branding -->
+    <color name="status_approved">#2E7D32</color>
+    <color name="status_pending">#F9A825</color>
+    <color name="status_completed">#1565C0</color>
+    <color name="status_cancelled">#C62828</color>
+    <color name="status_expired">#757575</color>
+    <color name="status_full">#EF6C00</color>
+
+    <!-- Translucent overlays -->
+    <color name="overlay_scrim_light">#AA000000</color>
+    <color name="overlay_scrim_heavy">#DD000000</color>
+    <color name="debug_banner_background">#B71C1C</color>
 </resources>

@@ -1,10 +1,14 @@
 package com.example.smart_solar_mgt_app.ui.prosumer.bookingsummary
 
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.View
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -51,6 +55,8 @@ class BookingActionSummaryFragment : Fragment(R.layout.fragment_booking_action_s
         val tvStatus = view.findViewById<TextView>(R.id.tvSummaryStatus)
         val tvSyncStatus = view.findViewById<TextView>(R.id.tvSummarySyncStatus)
         val btnBackToBookings = view.findViewById<MaterialButton>(R.id.btnBackToBookings)
+        val actionIconContainer = view.findViewById<FrameLayout>(R.id.actionIconContainer)
+        val ivActionIcon = view.findViewById<ImageView>(R.id.ivActionIcon)
 
         btnBackToBookings.setOnClickListener {
             findNavController().navigate(
@@ -70,6 +76,7 @@ class BookingActionSummaryFragment : Fragment(R.layout.fragment_booking_action_s
                 is BookingActionSummaryUiState.Loaded -> {
                     val booking = state.booking
                     tvHeadline.text = headlineFor(state.actionType)
+                    styleActionIcon(state.actionType, actionIconContainer, ivActionIcon)
                     tvStation.text = state.stationName
                     tvDateTime.text = "${booking.bookingDate} at ${booking.bookingTime}"
                     tvEnergy.text = "${booking.energyAmount} kWh"
@@ -85,6 +92,22 @@ class BookingActionSummaryFragment : Fragment(R.layout.fragment_booking_action_s
         }
 
         viewModel.load(bookingId.orEmpty(), actionType)
+    }
+
+    private fun styleActionIcon(actionType: BookingActionType, container: FrameLayout, icon: ImageView) {
+        val background = container.background.mutate()
+        when (actionType) {
+            BookingActionType.CANCELLED -> {
+                (background as? GradientDrawable)?.setColor(ContextCompat.getColor(requireContext(), R.color.status_cancelled))
+                icon.setImageResource(R.drawable.ic_cancel_circle)
+                icon.setColorFilter(Color.WHITE)
+            }
+            BookingActionType.CREATED, BookingActionType.UPDATED -> {
+                (background as? GradientDrawable)?.setColor(ContextCompat.getColor(requireContext(), R.color.status_approved))
+                icon.setImageResource(R.drawable.ic_approved)
+                icon.setColorFilter(Color.WHITE)
+            }
+        }
     }
 
     private fun headlineFor(actionType: BookingActionType): String = when (actionType) {

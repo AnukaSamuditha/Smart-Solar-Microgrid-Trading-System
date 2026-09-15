@@ -5,7 +5,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.viewmodel.initializer
@@ -114,7 +114,7 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     private fun showPendingActivationDialog() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("Registration Successful")
             .setMessage("Your account is awaiting activation. You'll be able to log in once it's approved.")
             .setCancelable(false)

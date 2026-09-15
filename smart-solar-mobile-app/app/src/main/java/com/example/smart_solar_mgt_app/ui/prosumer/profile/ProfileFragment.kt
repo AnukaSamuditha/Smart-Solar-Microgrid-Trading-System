@@ -6,7 +6,7 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -47,7 +47,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         }
 
         btnRequestDeactivation.setOnClickListener {
-            AlertDialog.Builder(requireContext())
+            MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Request Deactivation?")
                 .setMessage("Your account will be marked for deactivation review. You can keep using the app until it's processed.")
                 .setPositiveButton("Request Deactivation") { _, _ -> viewModel.requestDeactivation() }

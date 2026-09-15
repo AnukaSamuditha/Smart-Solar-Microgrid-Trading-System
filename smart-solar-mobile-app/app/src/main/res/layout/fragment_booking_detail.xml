@@ -1,22 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/solar_background"
     android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="@dimen/spacing_screen_horizontal">
 
         <ProgressBar
             android:id="@+id/progressBookingDetail"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="32dp" />
+            android:layout_marginTop="32dp"
+            android:indeterminateTint="@color/solar_primary" />
 
         <LinearLayout
             android:id="@+id/groupBookingDetail"
@@ -29,57 +32,125 @@
                 android:id="@+id/tvDetailStation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvDetailDateTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp" />
-
-            <TextView
-                android:id="@+id/tvDetailEnergy"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
+                android:textAppearance="@style/TextAppearance.App.ScreenTitle" />
 
             <TextView
                 android:id="@+id/tvDetailStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textStyle="bold" />
+                android:layout_marginTop="6dp"
+                android:textAppearance="@style/TextAppearance.App.StatusText" />
 
-            <TextView
-                android:id="@+id/tvDetailSyncStatus"
-                android:layout_width="wrap_content"
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.App.CardView"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="#757575" />
+                android:layout_marginTop="@dimen/spacing_section_gap">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_calendar_small"
+                            app:tint="@color/solar_text_secondary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Date &amp; Time"
+                            android:textColor="@color/solar_text_secondary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tvDetailDateTime"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/solar_text_primary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <View style="@style/App.Divider" android:layout_marginVertical="12dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_bolt"
+                            app:tint="@color/solar_text_secondary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Energy"
+                            android:textColor="@color/solar_text_secondary"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tvDetailEnergy"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/solar_text_primary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <View style="@style/App.Divider" android:layout_marginVertical="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvDetailSyncStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/solar_text_muted"
+                        android:textSize="12sp" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnViewQr"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/spacing_section_gap"
                 android:text="View QR"
                 android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnModify"
+                style="@style/Widget.App.Button.Secondary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="@dimen/spacing_card_gap"
                 android:text="Modify Reservation"
                 android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCancel"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Destructive"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="@dimen/spacing_card_gap"
                 android:text="Cancel Reservation"
                 android:visibility="gone" />
 
@@ -87,9 +158,10 @@
                 android:id="@+id/tvNoticeHelper"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/spacing_small_gap"
                 android:text="Modifications and cancellations require at least 12 hours notice"
-                android:textColor="#C62828"
+                android:textColor="@color/status_cancelled"
+                android:textSize="13sp"
                 android:visibility="gone" />
 
         </LinearLayout>

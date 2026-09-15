@@ -1,8 +1,56 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Smartsolarmgtapp" parent="Theme.Material3.Light.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    <!-- Fixed dark solar-energy theme - the app always looks like this, regardless of system
+         light/dark setting (see values-night/themes.xml, which points at the same palette). -->
+    <style name="Base.Theme.Smartsolarmgtapp" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/solar_primary</item>
+        <item name="colorOnPrimary">@color/solar_on_primary</item>
+        <item name="colorPrimaryContainer">@color/solar_primary_soft</item>
+        <item name="colorOnPrimaryContainer">@color/solar_on_primary</item>
+
+        <item name="colorSecondary">@color/solar_primary_soft</item>
+        <item name="colorOnSecondary">@color/solar_on_primary</item>
+
+        <item name="colorSurface">@color/solar_surface</item>
+        <item name="colorOnSurface">@color/solar_text_primary</item>
+        <item name="colorSurfaceVariant">@color/solar_surface_elevated</item>
+        <item name="colorOnSurfaceVariant">@color/solar_text_secondary</item>
+
+        <item name="android:colorBackground">@color/solar_background</item>
+        <item name="colorOnBackground">@color/solar_text_primary</item>
+
+        <item name="colorOutline">@color/solar_divider</item>
+        <item name="colorOutlineVariant">@color/solar_divider</item>
+
+        <item name="colorError">@color/status_cancelled</item>
+        <item name="colorOnError">@color/solar_text_primary</item>
+
+        <item name="colorControlNormal">@color/solar_text_secondary</item>
+        <item name="colorControlActivated">@color/solar_primary</item>
+        <item name="colorAccent">@color/solar_primary</item>
+
+        <!-- Material3 dark-theme elevation overlay blends colorSurface with colorPrimary at
+             elevation, which would tint elevated surfaces (dialogs, bottom sheets) lime-green
+             instead of the exact surface hex values specified by the design system. -->
+        <item name="elevationOverlayEnabled">false</item>
+
+        <item name="android:windowBackground">@color/solar_background</item>
+        <item name="android:textColorPrimary">@color/solar_text_primary</item>
+        <item name="android:textColorSecondary">@color/solar_text_secondary</item>
+        <item name="android:textColorHint">@color/solar_text_muted</item>
+
+        <item name="android:statusBarColor">@color/solar_background</item>
+        <item name="android:navigationBarColor">@color/solar_background</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+
+        <item name="materialButtonStyle">@style/Widget.App.Button.Primary</item>
+        <item name="textInputStyle">@style/Widget.App.TextInputLayout</item>
+        <item name="bottomNavigationStyle">@style/Widget.App.BottomNavigation</item>
+        <item name="materialCardViewStyle">@style/Widget.App.CardView</item>
+        <item name="tabStyle">@style/Widget.App.TabLayout</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.App.Dialog</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.App.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.App.BottomSheet</item>
     </style>
 
     <style name="Theme.Smartsolarmgtapp" parent="Base.Theme.Smartsolarmgtapp" />
