@@ -13,15 +13,29 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Smartsolarmgtapp">
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.auth.SplashActivity"
             android:exported="true"
-            android:windowSoftInputMode="adjustResize">
+            android:theme="@style/Theme.Smartsolarmgtapp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".ui.auth.LoginActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.auth.RegisterActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.prosumer.ProsumerMainActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.gridoperator.OperatorMainActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

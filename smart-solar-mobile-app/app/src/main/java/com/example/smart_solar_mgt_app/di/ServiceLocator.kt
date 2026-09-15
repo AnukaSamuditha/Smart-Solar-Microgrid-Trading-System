@@ -8,6 +8,10 @@ import com.example.smart_solar_mgt_app.core.security.SecurityManager
 import com.example.smart_solar_mgt_app.core.security.SecurityManagerImpl
 import com.example.smart_solar_mgt_app.data.repository.AuthRepository
 import com.example.smart_solar_mgt_app.data.repository.AuthRepositoryImpl
+import com.example.smart_solar_mgt_app.data.repository.BookingRepository
+import com.example.smart_solar_mgt_app.data.repository.BookingRepositoryImpl
+import com.example.smart_solar_mgt_app.data.repository.StationRepository
+import com.example.smart_solar_mgt_app.data.repository.StationRepositoryImpl
 
 /**
  * Manual dependency container. Managers/repositories are added here as each
@@ -21,6 +25,8 @@ object ServiceLocator {
     val secureSessionStore: SecureSessionStore by lazy { SecureSessionStore(appContext) }
     val qrTokenService: QrTokenService by lazy { QrTokenService() }
     val authRepository: AuthRepository by lazy { AuthRepositoryImpl(localDbManager) }
+    val bookingRepository: BookingRepository by lazy { BookingRepositoryImpl(localDbManager) }
+    val stationRepository: StationRepository by lazy { StationRepositoryImpl(localDbManager) }
     val securityManager: SecurityManager by lazy {
         SecurityManagerImpl(authRepository, secureSessionStore, qrTokenService)
     }

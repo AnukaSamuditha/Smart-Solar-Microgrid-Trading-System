@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/homeFragment"
+        android:title="Home"
+        android:icon="@android:drawable/ic_menu_myplaces" />
+    <item
+        android:id="@+id/bookingsFragment"
+        android:title="Bookings"
+        android:icon="@android:drawable/ic_menu_agenda" />
+    <item
+        android:id="@+id/mapFragment"
+        android:title="Map"
+        android:icon="@android:drawable/ic_menu_mapmode" />
+    <item
+        android:id="@+id/profileFragment"
+        android:title="Profile"
+        android:icon="@android:drawable/ic_menu_manage" />
+</menu>
