@@ -2,16 +2,28 @@ package com.example.smart_solar_mgt_app.di
 
 import android.content.Context
 import com.example.smart_solar_mgt_app.core.db.LocalDbManager
+import com.example.smart_solar_mgt_app.core.security.QrTokenService
+import com.example.smart_solar_mgt_app.core.security.SecureSessionStore
+import com.example.smart_solar_mgt_app.core.security.SecurityManager
+import com.example.smart_solar_mgt_app.core.security.SecurityManagerImpl
+import com.example.smart_solar_mgt_app.data.repository.AuthRepository
+import com.example.smart_solar_mgt_app.data.repository.AuthRepositoryImpl
 
 /**
  * Manual dependency container. Managers/repositories are added here as each
- * architectural piece is implemented (SecurityManager, CommunicationManager, etc.).
+ * architectural piece is implemented (CommunicationManager, SyncManager, etc.).
  */
 object ServiceLocator {
 
     private lateinit var appContext: Context
 
     val localDbManager: LocalDbManager by lazy { LocalDbManager(appContext) }
+    val secureSessionStore: SecureSessionStore by lazy { SecureSessionStore(appContext) }
+    val qrTokenService: QrTokenService by lazy { QrTokenService() }
+    val authRepository: AuthRepository by lazy { AuthRepositoryImpl(localDbManager) }
+    val securityManager: SecurityManager by lazy {
+        SecurityManagerImpl(authRepository, secureSessionStore, qrTokenService)
+    }
 
     fun init(context: Context) {
         appContext = context.applicationContext

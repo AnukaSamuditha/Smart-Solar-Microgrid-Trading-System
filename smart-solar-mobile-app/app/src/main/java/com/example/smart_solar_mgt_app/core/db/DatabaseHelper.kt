@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.example.smart_solar_mgt_app.core.security.PasswordHasher
 
 /**
  * Owns schema creation/migration for the local SQLite database. This is the ONLY class that
@@ -30,8 +31,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL(DatabaseContract.SessionTable.CREATE_TABLE)
 
         seedStations(db)
-        // Seeded GRID_OPERATOR test account is added once PasswordHasher exists (Security Manager phase) -
-        // seeding a user row requires a real password_hash, not a placeholder string.
+        seedGridOperator(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -59,6 +59,21 @@ class DatabaseHelper(context: Context) :
             }
             db.insert(DatabaseContract.Stations.TABLE, null, values)
         }
+    }
+
+    /** Dev-only seeded account so the Grid Operator flow is testable before a registration/backoffice flow exists. */
+    private fun seedGridOperator(db: SQLiteDatabase) {
+        val values = ContentValues().apply {
+            put(DatabaseContract.Users.COL_NIC, "OP0000001")
+            put(DatabaseContract.Users.COL_NAME, "Grid Operator One")
+            put(DatabaseContract.Users.COL_EMAIL, "operator@smartsolar.test")
+            put(DatabaseContract.Users.COL_PHONE, null as String?)
+            put(DatabaseContract.Users.COL_ADDRESS, null as String?)
+            put(DatabaseContract.Users.COL_PASSWORD_HASH, PasswordHasher.hash("Operator@123".toCharArray()))
+            put(DatabaseContract.Users.COL_ROLE, "GRID_OPERATOR")
+            put(DatabaseContract.Users.COL_ACCOUNT_STATUS, "ACTIVE")
+        }
+        db.insert(DatabaseContract.Users.TABLE, null, values)
     }
 
     private data class SeedStation(
