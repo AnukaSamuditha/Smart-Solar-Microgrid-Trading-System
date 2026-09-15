@@ -20,6 +20,7 @@ sealed class AppError {
     data object NotFound : AppError()
     data object Unauthorized : AppError()
     data object InvalidStatusTransition : AppError()
+    data object TooLateToModify : AppError()
     data class UniqueConstraintViolation(val field: String) : AppError()
     data class Unknown(val message: String, val cause: Throwable? = null) : AppError()
 }

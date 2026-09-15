@@ -9,4 +9,5 @@ sealed class NewBookingFormState {
     data class FieldErrors(val errors: Map<BookingField, String>) : NewBookingFormState()
     data class FormError(val message: String) : NewBookingFormState()
     data class Created(val booking: Booking, val station: SolarStation) : NewBookingFormState()
+    data class Updated(val booking: Booking, val station: SolarStation) : NewBookingFormState()
 }

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DEBUG ONLY - delete this entire src/debug/ tree once the real Grid Operator UI ships
+     (it already exists - see ui/gridoperator - so this whole source set can be removed
+     once that flow is confirmed working end to end). This manifest is merged only into
+     debug builds; it does not exist in release. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <activity
+            android:name=".debug.DebugBookingApprovalActivity"
+            android:exported="true"
+            android:label="Smart Solar (DEBUG)"
+            android:theme="@style/Theme.Smartsolarmgtapp">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

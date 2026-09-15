@@ -11,6 +11,7 @@ import com.example.smart_solar_mgt_app.core.db.dao.TransactionDao
 import com.example.smart_solar_mgt_app.core.db.dao.UserDao
 import com.example.smart_solar_mgt_app.domain.model.AccountStatus
 import com.example.smart_solar_mgt_app.domain.model.Booking
+import com.example.smart_solar_mgt_app.domain.model.BookingListItem
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
 import com.example.smart_solar_mgt_app.domain.model.Role
 import com.example.smart_solar_mgt_app.domain.model.Session
@@ -19,6 +20,9 @@ import com.example.smart_solar_mgt_app.domain.model.StationStatus
 import com.example.smart_solar_mgt_app.domain.model.Transaction
 import com.example.smart_solar_mgt_app.domain.model.TransactionStatus
 import com.example.smart_solar_mgt_app.domain.model.User
+import com.example.smart_solar_mgt_app.util.BookingTimeRules
+import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
 
 /**
@@ -64,6 +68,39 @@ class LocalDbManager(context: Context) {
     fun getBookingStatusCounts(nic: String): Map<BookingStatus, Int> = bookingDao.getStatusCounts(helper.readableDatabase, nic)
     fun getUpcomingBooking(nic: String, nowDate: String, nowTime: String): Booking? =
         bookingDao.getUpcoming(helper.readableDatabase, nic, nowDate, nowTime)
+
+    /** Single JOIN query backing the whole My Bookings screen - tabs/search are applied in-memory on top of this. */
+    fun getBookingListItems(nic: String): List<BookingListItem> {
+        val b = DatabaseContract.Bookings
+        val s = DatabaseContract.Stations
+        val sql = """
+            SELECT b.${b.COL_BOOKING_ID}, b.${b.COL_BOOKING_DATE}, b.${b.COL_BOOKING_TIME},
+                   b.${b.COL_ENERGY_AMOUNT}, b.${b.COL_STATUS}, b.${b.COL_SYNC_STATUS},
+                   s.${s.COL_STATION_ID}, s.${s.COL_STATION_NAME}
+            FROM ${b.TABLE} b
+            JOIN ${s.TABLE} s ON s.${s.COL_STATION_ID} = b.${b.COL_STATION_ID}
+            WHERE b.${b.COL_PROSUMER_NIC} = ?
+            ORDER BY b.${b.COL_BOOKING_DATE} DESC, b.${b.COL_BOOKING_TIME} DESC
+        """
+        helper.readableDatabase.rawQuery(sql, arrayOf(nic)).use { cursor ->
+            val results = mutableListOf<BookingListItem>()
+            while (cursor.moveToNext()) {
+                results.add(
+                    BookingListItem(
+                        bookingId = cursor.getString(cursor.getColumnIndexOrThrow(b.COL_BOOKING_ID)),
+                        stationId = cursor.getString(cursor.getColumnIndexOrThrow(s.COL_STATION_ID)),
+                        stationName = cursor.getString(cursor.getColumnIndexOrThrow(s.COL_STATION_NAME)),
+                        bookingDate = cursor.getString(cursor.getColumnIndexOrThrow(b.COL_BOOKING_DATE)),
+                        bookingTime = cursor.getString(cursor.getColumnIndexOrThrow(b.COL_BOOKING_TIME)),
+                        energyAmount = cursor.getDouble(cursor.getColumnIndexOrThrow(b.COL_ENERGY_AMOUNT)),
+                        status = BookingStatus.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(b.COL_STATUS))),
+                        syncStatus = SyncStatus.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(b.COL_SYNC_STATUS)))
+                    )
+                )
+            }
+            return results
+        }
+    }
 
     // ---- Transactions (read) ----
 
@@ -125,4 +162,123 @@ class LocalDbManager(context: Context) {
             db.endTransaction()
         }
     }
+
+    /**
+     * Modifies date/time/energy on an existing booking. Re-verifies ownership, status, and the
+     * 12-hour notice rule inside the transaction - a client-side gate (BookingDetailFragment)
+     * only decides whether to show the button; this is what's actually enforced.
+     */
+    fun updateBooking(
+        bookingId: String,
+        prosumerNic: String,
+        bookingDate: String,
+        bookingTime: String,
+        energyAmount: Double,
+        now: Long
+    ): AppResult<Booking> {
+        val db = helper.writableDatabase
+        db.beginTransaction()
+        try {
+            val current = bookingDao.getById(db, bookingId) ?: return AppResult.Failure(AppError.NotFound)
+            if (current.prosumerNic != prosumerNic) return AppResult.Failure(AppError.Unauthorized)
+            if (current.status != BookingStatus.PENDING && current.status != BookingStatus.CONFIRMED) {
+                return AppResult.Failure(AppError.InvalidStatusTransition)
+            }
+            if (!canModifyOrCancel(current)) return AppResult.Failure(AppError.TooLateToModify)
+
+            bookingDao.updateFields(db, bookingId, bookingDate, bookingTime, energyAmount, SyncStatus.PENDING_SYNC, now)
+            db.setTransactionSuccessful()
+            return AppResult.Success(bookingDao.getById(db, bookingId)!!)
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /**
+     * Cancels an existing booking and restores its station slot. Same ownership/status/12-hour
+     * re-check as updateBooking. Double-cancel (double-tap, or a race) is naturally prevented -
+     * the second attempt sees status already CANCELLED and fails InvalidStatusTransition instead
+     * of restoring the slot twice.
+     */
+    fun cancelBooking(bookingId: String, prosumerNic: String, now: Long): AppResult<Unit> {
+        val db = helper.writableDatabase
+        db.beginTransaction()
+        try {
+            val current = bookingDao.getById(db, bookingId) ?: return AppResult.Failure(AppError.NotFound)
+            if (current.prosumerNic != prosumerNic) return AppResult.Failure(AppError.Unauthorized)
+            if (current.status != BookingStatus.PENDING && current.status != BookingStatus.CONFIRMED) {
+                return AppResult.Failure(AppError.InvalidStatusTransition)
+            }
+            if (!canModifyOrCancel(current)) return AppResult.Failure(AppError.TooLateToModify)
+
+            bookingDao.updateStatus(db, bookingId, BookingStatus.CANCELLED, SyncStatus.PENDING_SYNC, now)
+            stationDao.adjustAvailableSlots(db, current.stationId, delta = 1)
+            // NOTE: once the QR/transaction flow exists, also flip any GENERATED transaction for
+            // this booking to CANCELLED here, so an already-cancelled reservation's QR can't
+            // still be scanned/completed by an operator who hasn't refreshed.
+
+            db.setTransactionSuccessful()
+            return AppResult.Success(Unit)
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /**
+     * PENDING -> CONFIRMED, plus generates the QR transaction row (Energy Transfer Pass).
+     * The signed token itself is computed by the caller (QrTokenService, a core.security
+     * concern) - this just persists it atomically alongside the status change.
+     */
+    fun approveBooking(bookingId: String, transactionId: String, qrToken: String): AppResult<Booking> {
+        val db = helper.writableDatabase
+        db.beginTransaction()
+        try {
+            val current = bookingDao.getById(db, bookingId) ?: return AppResult.Failure(AppError.NotFound)
+            if (current.status != BookingStatus.PENDING) return AppResult.Failure(AppError.InvalidStatusTransition)
+
+            val now = System.currentTimeMillis()
+            bookingDao.updateStatus(db, bookingId, BookingStatus.CONFIRMED, SyncStatus.PENDING_SYNC, now)
+
+            val transaction = Transaction(
+                transactionId = transactionId,
+                bookingId = bookingId,
+                qrToken = qrToken,
+                status = TransactionStatus.GENERATED,
+                operatorId = null,
+                generatedAt = now,
+                completedAt = null
+            )
+            transactionDao.insert(db, transaction)
+
+            db.setTransactionSuccessful()
+            return AppResult.Success(bookingDao.getById(db, bookingId)!!)
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /** Operator rejection of a still-PENDING booking - no ownership/12-hour check (that's a prosumer-cancel concept), just status + slot restore. */
+    fun rejectBooking(bookingId: String): AppResult<Unit> {
+        val db = helper.writableDatabase
+        db.beginTransaction()
+        try {
+            val current = bookingDao.getById(db, bookingId) ?: return AppResult.Failure(AppError.NotFound)
+            if (current.status != BookingStatus.PENDING) return AppResult.Failure(AppError.InvalidStatusTransition)
+
+            val now = System.currentTimeMillis()
+            bookingDao.updateStatus(db, bookingId, BookingStatus.CANCELLED, SyncStatus.PENDING_SYNC, now)
+            stationDao.adjustAvailableSlots(db, current.stationId, delta = 1)
+
+            db.setTransactionSuccessful()
+            return AppResult.Success(Unit)
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    private fun canModifyOrCancel(booking: Booking): Boolean = BookingTimeRules.canModifyOrCancel(
+        booking.status,
+        LocalDate.parse(booking.bookingDate),
+        LocalTime.parse(booking.bookingTime)
+    )
 }

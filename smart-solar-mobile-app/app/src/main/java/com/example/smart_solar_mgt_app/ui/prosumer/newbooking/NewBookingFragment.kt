@@ -10,12 +10,17 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.di.ServiceLocator
+import com.example.smart_solar_mgt_app.domain.model.Booking
 import com.example.smart_solar_mgt_app.domain.model.SolarStation
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -40,7 +45,9 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
     }
 
     private val preselectedStationId: String? by lazy { arguments?.getString(ARG_STATION_ID) }
+    private val editBookingId: String? by lazy { arguments?.getString(ARG_BOOKING_ID) }
 
+    private var editingBooking: Booking? = null
     private var selectedStationId: String? = null
     private var selectedDate: LocalDate? = null
     private var selectedTime: LocalTime? = null
@@ -72,6 +79,8 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
 
         selectedStationId = preselectedStationId
 
+        val isEditMode = editBookingId != null
+
         tilStation = view.findViewById(R.id.tilStation)
         tilDate = view.findViewById(R.id.tilDate)
         tilTime = view.findViewById(R.id.tilTime)
@@ -87,26 +96,66 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
         etDate.setOnClickListener { showDatePicker() }
         etTime.setOnClickListener { showTimePicker() }
 
+        if (isEditMode) {
+            btnConfirmBooking.text = "Save Changes"
+        }
+
         btnConfirmBooking.setOnClickListener {
             fieldLayouts.values.forEach { it.error = null }
-            viewModel.onConfirmClicked(
-                selectedStationId,
-                selectedDate,
-                selectedTime,
-                etEnergyAmount.text?.toString().orEmpty()
-            )
+            val bookingId = editBookingId
+            if (bookingId != null) {
+                viewModel.onUpdateClicked(
+                    bookingId,
+                    selectedStationId,
+                    selectedDate,
+                    selectedTime,
+                    etEnergyAmount.text?.toString().orEmpty()
+                )
+            } else {
+                viewModel.onConfirmClicked(
+                    selectedStationId,
+                    selectedDate,
+                    selectedTime,
+                    etEnergyAmount.text?.toString().orEmpty()
+                )
+            }
         }
 
         viewModel.stations.observe(viewLifecycleOwner) { stations -> onStationsLoaded(stations) }
         viewModel.formState.observe(viewLifecycleOwner) { state -> render(state) }
-        viewModel.loadStations(preselectedStationId)
+
+        if (isEditMode) {
+            loadBookingForEdit(editBookingId!!)
+        } else {
+            viewModel.loadStations(preselectedStationId)
+        }
+    }
+
+    private fun loadBookingForEdit(bookingId: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val booking = withContext(Dispatchers.IO) { ServiceLocator.bookingRepository.getBookingById(bookingId) }
+            if (booking == null) {
+                Toast.makeText(requireContext(), "This reservation is no longer available.", Toast.LENGTH_LONG).show()
+                findNavController().popBackStack()
+                return@launch
+            }
+            editingBooking = booking
+            selectedDate = LocalDate.parse(booking.bookingDate)
+            selectedTime = LocalTime.parse(booking.bookingTime)
+            etDate.setText(booking.bookingDate)
+            etTime.setText(booking.bookingTime)
+            etEnergyAmount.setText(booking.energyAmount.toString())
+            viewModel.loadStations(booking.stationId)
+        }
     }
 
     private fun onStationsLoaded(stations: List<SolarStation>) {
         stationsById = stations.associateBy { it.stationId }
 
-        if (preselectedStationId != null) {
-            val station = stationsById[preselectedStationId]
+        val lockedStationId = preselectedStationId ?: editingBooking?.stationId
+        if (lockedStationId != null) {
+            selectedStationId = lockedStationId
+            val station = stationsById[lockedStationId]
             etStation.isEnabled = false
             if (station != null) {
                 etStation.setText(stationLabel(station), false)
@@ -168,20 +217,21 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
                 fieldLayouts[field]?.error = message
             }
             is NewBookingFormState.FormError -> Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
-            is NewBookingFormState.Created -> showSummary(state)
+            is NewBookingFormState.Created -> showSummary("Reservation Created", state.station, state.booking)
+            is NewBookingFormState.Updated -> showSummary("Reservation Updated", state.station, state.booking)
             NewBookingFormState.Idle, NewBookingFormState.Saving -> Unit
         }
     }
 
-    private fun showSummary(state: NewBookingFormState.Created) {
-        val message = "Station: ${state.station.stationName}\n" +
-            "Date: ${state.booking.bookingDate}\n" +
-            "Time: ${state.booking.bookingTime}\n" +
-            "Energy: ${state.booking.energyAmount} kWh\n" +
-            "Status: ${state.booking.status.name}"
+    private fun showSummary(title: String, station: SolarStation, booking: Booking) {
+        val message = "Station: ${station.stationName}\n" +
+            "Date: ${booking.bookingDate}\n" +
+            "Time: ${booking.bookingTime}\n" +
+            "Energy: ${booking.energyAmount} kWh\n" +
+            "Status: ${booking.status.name}"
 
         AlertDialog.Builder(requireContext())
-            .setTitle("Reservation Created")
+            .setTitle(title)
             .setMessage(message)
             .setCancelable(false)
             .setPositiveButton("Done") { _, _ -> findNavController().popBackStack() }
@@ -190,5 +240,6 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
 
     companion object {
         const val ARG_STATION_ID = "stationId"
+        const val ARG_BOOKING_ID = "bookingId"
     }
 }

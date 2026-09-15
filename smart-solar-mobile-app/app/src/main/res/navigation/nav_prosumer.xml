@@ -21,7 +21,20 @@
     <fragment
         android:id="@+id/bookingsFragment"
         android:name="com.example.smart_solar_mgt_app.ui.prosumer.bookings.BookingsFragment"
-        android:label="Bookings" />
+        android:label="Bookings">
+        <action
+            android:id="@+id/action_bookingsFragment_to_bookingDetailFragment"
+            app:destination="@id/bookingDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/bookingDetailFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.prosumer.bookings.BookingDetailFragment"
+        android:label="Booking Details">
+        <action
+            android:id="@+id/action_bookingDetailFragment_to_newBookingFragment"
+            app:destination="@id/newBookingFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/mapFragment"

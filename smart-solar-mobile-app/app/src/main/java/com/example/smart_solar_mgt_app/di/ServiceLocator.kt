@@ -25,7 +25,7 @@ object ServiceLocator {
     val secureSessionStore: SecureSessionStore by lazy { SecureSessionStore(appContext) }
     val qrTokenService: QrTokenService by lazy { QrTokenService() }
     val authRepository: AuthRepository by lazy { AuthRepositoryImpl(localDbManager) }
-    val bookingRepository: BookingRepository by lazy { BookingRepositoryImpl(localDbManager) }
+    val bookingRepository: BookingRepository by lazy { BookingRepositoryImpl(localDbManager, securityManager, qrTokenService) }
     val stationRepository: StationRepository by lazy { StationRepositoryImpl(localDbManager) }
     val securityManager: SecurityManager by lazy {
         SecurityManagerImpl(authRepository, secureSessionStore, qrTokenService)
