@@ -33,8 +33,8 @@ class StationListAdapter(
 
         fun bind(station: SolarStation, onItemClick: (SolarStation) -> Unit) {
             tvName.text = station.stationName
-            tvCapacity.text = "Capacity: ${station.capacityKwh} kWh"
-            tvSlots.text = "Available Slots: ${station.availableSlots}"
+            tvCapacity.text = "${station.capacityKwh} kWh"
+            tvSlots.text = "${station.availableSlots} slots left"
             tvStatus.text = station.status.name
             tvStatus.setTextColor(colorFor(station.status))
             card.setOnClickListener { onItemClick(station) }

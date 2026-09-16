@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smart_solar_mgt_app.core.security.SecurityManager
+import com.example.smart_solar_mgt_app.data.repository.AuthRepository
 import com.example.smart_solar_mgt_app.data.repository.BookingRepository
 import com.example.smart_solar_mgt_app.data.repository.StationRepository
 import com.example.smart_solar_mgt_app.domain.model.BookingCounts
@@ -16,7 +17,8 @@ import kotlinx.coroutines.withContext
 class HomeViewModel(
     private val bookingRepository: BookingRepository,
     private val stationRepository: StationRepository,
-    private val securityManager: SecurityManager
+    private val securityManager: SecurityManager,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableLiveData<HomeUiState>(HomeUiState.Loading)
@@ -32,9 +34,11 @@ class HomeViewModel(
     }
 
     private fun buildState(nic: String): HomeUiState {
+        val welcomeName = authRepository.findUserByNic(nic)?.name ?: nic
+
         val rawCounts = bookingRepository.getStatusCounts(nic)
         val total = rawCounts.values.sum()
-        if (total == 0) return HomeUiState.Empty
+        if (total == 0) return HomeUiState.Empty(welcomeName)
 
         val counts = BookingCounts(
             pending = rawCounts[BookingStatus.PENDING] ?: 0,
@@ -57,6 +61,6 @@ class HomeViewModel(
             )
         }
 
-        return HomeUiState.Loaded(welcomeName = nic, counts = counts, upcoming = upcoming)
+        return HomeUiState.Loaded(welcomeName = welcomeName, counts = counts, upcoming = upcoming)
     }
 }

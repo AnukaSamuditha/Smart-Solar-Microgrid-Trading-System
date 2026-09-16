@@ -7,7 +7,7 @@ sealed class HomeUiState {
     data object Loading : HomeUiState()
 
     /** True empty state - this prosumer has never made a booking, any status. */
-    data object Empty : HomeUiState()
+    data class Empty(val welcomeName: String) : HomeUiState()
 
     data class Loaded(
         val welcomeName: String,

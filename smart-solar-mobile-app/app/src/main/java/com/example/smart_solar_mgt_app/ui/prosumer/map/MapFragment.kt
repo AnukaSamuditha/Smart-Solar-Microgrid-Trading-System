@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -30,13 +29,32 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
-import com.google.android.material.button.MaterialButton
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 
 /**
- * Map tab: real Google Maps with station markers (now that an API key is configured),
- * with the offline-safe station list from before kept as a manual toggle - map tiles need
- * real internet even though the rest of this app is offline-first.
+ * Map tab: same full-screen map + persistent draggable bottom sheet as the Grid Operator's Map
+ * (see OperatorMapFragment) - the map fills the whole screen (including behind the status
+ * bar/notch and the floating nav pill, courtesy of the edge-to-edge NavHost), the station list
+ * lives in a bottom sheet capped at half the screen, and tapping a station - in the list or as
+ * a marker - zooms the map to it and collapses the sheet.
+ *
+ * The list's own container (R.id.stationListArea) gets its height set explicitly in code here,
+ * recalculated continuously as the sheet drags (onSlide) rather than once: the sheet's internal
+ * content lives in a coordinate space that is much taller than any single visible window into
+ * it (that's how BottomSheetBehavior does the collapsed/expanded slide), so "how much of the
+ * list is visible right now" changes with the sheet's position - a single fixed height cannot
+ * correctly reserve the nav pill's footprint for both the collapsed peek and the expanded state
+ * at once. (Also, layout_weight on this container does not reliably shrink the way it would in
+ * a plain LinearLayout when BottomSheetBehavior is involved - confirmed empirically - so the
+ * height cannot be delegated to XML at all here.) Without this, station rows can render - and
+ * be hit-tested - underneath the pill, which draws on top and steals their taps.
+ *
+ * Unlike the read-only Operator map, a Prosumer can book here: the marker's info window doubles
+ * as the booking action ("Tap to book" snippet when the station is bookable), tapped via
+ * GoogleMap.OnInfoWindowClickListener, since a plain marker tap is already claimed by the
+ * zoom-and-focus behavior.
  */
 class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
 
@@ -46,30 +64,70 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
 
     private var googleMap: GoogleMap? = null
     private var stationById: Map<String, SolarStation> = emptyMap()
+    private var markerByStationId: MutableMap<String, Marker> = mutableMapOf()
     private var pendingStations: List<SolarStation>? = null
-    private var showingList = false
 
-    private lateinit var mapPane: View
+    private lateinit var bottomSheetBehavior: BottomSheetBehavior<View>
+    private lateinit var bottomSheet: View
+    private var containerHeight = 0
+    private lateinit var stationListArea: View
     private lateinit var swipeRefreshMap: SwipeRefreshLayout
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressMap: ProgressBar
     private lateinit var tvEmptyMap: TextView
     private lateinit var tvMapBanner: TextView
-    private lateinit var btnToggleView: MaterialButton
     private lateinit var adapter: StationListAdapter
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        mapPane = view.findViewById(R.id.mapPane)
+        // The NavHost itself now bleeds edge-to-edge for every prosumer screen (see
+        // ProsumerMainActivity), so the map here already reaches the true top/bottom edges
+        // with no extra work - unlike every other screen, this one deliberately doesn't call
+        // View.applyEdgeToEdgeContentPadding, since the map is meant to show through.
+
+        bottomSheet = view.findViewById(R.id.bottomSheetStations)
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet).apply {
+            state = BottomSheetBehavior.STATE_COLLAPSED
+            // Tall enough that the collapsed peek shows a full first card, not just a sliver -
+            // the nav-pill clearance itself comes from updateListAreaHeight, not from this.
+            peekHeight = resources.getDimensionPixelSize(R.dimen.bottom_sheet_peek_height) +
+                resources.getDimensionPixelSize(R.dimen.floating_nav_clearance)
+        }
+        stationListArea = view.findViewById(R.id.stationListArea)
+
+        // Cap "maximized" at half the screen instead of full-screen. A persistent listener
+        // (not a one-shot doOnLayout) because the edge-to-edge NavHost's own inset margins
+        // trigger a second, taller layout pass shortly after the first.
+        view.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+            if (v.height != containerHeight) {
+                containerHeight = v.height
+                bottomSheetBehavior.expandedOffset = v.height / 2
+            }
+            updateListAreaHeight()
+        }
+        bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(sheet: View, newState: Int) {
+                val bottomPadding = when (newState) {
+                    BottomSheetBehavior.STATE_EXPANDED, BottomSheetBehavior.STATE_HALF_EXPANDED ->
+                        containerHeight - bottomSheetBehavior.expandedOffset
+                    BottomSheetBehavior.STATE_COLLAPSED -> bottomSheetBehavior.peekHeight
+                    else -> return
+                }
+                googleMap?.setPadding(0, 0, 0, bottomPadding)
+                updateListAreaHeight()
+            }
+
+            override fun onSlide(sheet: View, slideOffset: Float) = updateListAreaHeight()
+        })
+
         swipeRefreshMap = view.findViewById(R.id.swipeRefreshMap)
         recyclerView = view.findViewById(R.id.rvStations)
         progressMap = view.findViewById(R.id.progressMap)
         tvEmptyMap = view.findViewById(R.id.tvEmptyMap)
         tvMapBanner = view.findViewById(R.id.tvMapBanner)
-        btnToggleView = view.findViewById(R.id.btnToggleView)
 
-        adapter = StationListAdapter { station -> showStationDetail(station) }
+        adapter = StationListAdapter { station -> focusStation(station) }
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
         swipeRefreshMap.setOnRefreshListener { viewModel.loadStations() }
@@ -80,13 +138,10 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
         if (playServicesAvailable) {
             val mapFragment = childFragmentManager.findFragmentById(R.id.mapContainer) as com.google.android.gms.maps.SupportMapFragment
             mapFragment.getMapAsync(this)
-            btnToggleView.setOnClickListener { toggleView() }
         } else {
-            // No Play Services (common on some emulators/devices) - fall back to list only.
-            showingList = true
-            mapPane.isVisible = false
-            swipeRefreshMap.isVisible = true
-            btnToggleView.isVisible = false
+            // No Play Services (common on some emulators/devices) - nothing to show behind the
+            // sheet, so expand it fully to make the station list the primary view instead.
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
 
         tvMapBanner.isVisible = !isOnline()
@@ -112,25 +167,42 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
 
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
+        val initialBottomPadding = if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
+            containerHeight - bottomSheetBehavior.expandedOffset
+        } else {
+            bottomSheetBehavior.peekHeight
+        }
+        map.setPadding(0, 0, 0, initialBottomPadding)
+        map.setOnInfoWindowClickListener { marker ->
+            val stationId = marker.tag as? String
+            val station = stationId?.let { stationById[it] }
+            if (station != null) attemptBook(station)
+        }
         pendingStations?.let { renderMarkers(it) }
     }
 
     private fun renderMarkers(stations: List<SolarStation>) {
         val map = googleMap ?: run { pendingStations = stations; return }
         map.clear()
+        markerByStationId.clear()
         for (station in stations) {
-            map.addMarker(
+            val marker = map.addMarker(
                 MarkerOptions()
                     .position(LatLng(station.latitude, station.longitude))
                     .title(station.stationName)
+                    .snippet(if (canBook(station)) "Tap to book" else station.status.name.replace('_', ' '))
                     .icon(BitmapDescriptorFactory.defaultMarker(StationMarkerIcons.hueFor(station.status)))
-            )?.tag = station.stationId
+            )
+            if (marker != null) {
+                marker.tag = station.stationId
+                markerByStationId[station.stationId] = marker
+            }
         }
         map.setOnMarkerClickListener { marker ->
             val stationId = marker.tag as? String
             val station = stationId?.let { stationById[it] }
             if (station != null) {
-                showStationDetail(station)
+                focusStation(station)
                 true
             } else {
                 false
@@ -154,13 +226,6 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
         }
     }
 
-    private fun toggleView() {
-        showingList = !showingList
-        mapPane.isVisible = !showingList
-        swipeRefreshMap.isVisible = showingList
-        btnToggleView.text = if (showingList) "Map View" else "List View"
-    }
-
     private fun isOnline(): Boolean {
         val connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = connectivityManager.activeNetwork ?: return false
@@ -168,26 +233,46 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    private fun showStationDetail(station: SolarStation) {
-        val message = buildString {
-            append("Capacity: ${station.capacityKwh} kWh\n")
-            append("Available Slots: ${station.availableSlots}\n")
-            append("Status: ${station.status.name}\n")
-            append("Location: ${station.latitude}, ${station.longitude}")
+    /**
+     * Sizes stationListArea so it ends exactly floating_nav_clearance above the true screen
+     * bottom, no matter where the sheet currently sits. bottomSheet.top is the sheet's current
+     * on-screen position (varies continuously while dragging); the visible window into its
+     * content is (containerHeight - bottomSheet.top), and stationListArea.top (fixed - it's
+     * just the drag handle + title above it) tells us where the list starts within that window.
+     */
+    private fun updateListAreaHeight() {
+        if (containerHeight == 0) return
+        val visibleWindowHeight = containerHeight - bottomSheet.top
+        val clearance = resources.getDimensionPixelSize(R.dimen.floating_nav_clearance)
+        val newHeight = (visibleWindowHeight - stationListArea.top - clearance).coerceAtLeast(0)
+        val lp = stationListArea.layoutParams
+        if (lp.height != newHeight) {
+            lp.height = newHeight
+            stationListArea.layoutParams = lp
         }
-        val canBook = station.status == StationStatus.ACTIVE && station.availableSlots > 0
+    }
 
-        val builder = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(station.stationName)
-            .setMessage(message)
-            .setNegativeButton("Close", null)
+    private fun canBook(station: SolarStation): Boolean =
+        station.status == StationStatus.ACTIVE && station.availableSlots > 0
 
-        if (canBook) {
-            builder.setPositiveButton("Book Here") { _, _ ->
-                val args = Bundle().apply { putString(NewBookingFragment.ARG_STATION_ID, station.stationId) }
-                findNavController().navigate(R.id.action_global_newBookingFragment, args)
-            }
+    /**
+     * Zooms the map to the station and collapses the sheet so the zoomed-in map is visible
+     * (matching the Operator's Map), or - if there's no map at all (no Play Services) - goes
+     * straight to the booking attempt since there's nothing to zoom into.
+     */
+    private fun focusStation(station: SolarStation) {
+        val map = googleMap ?: run { attemptBook(station); return }
+        map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(station.latitude, station.longitude), 16f))
+        markerByStationId[station.stationId]?.showInfoWindow()
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+    }
+
+    private fun attemptBook(station: SolarStation) {
+        if (canBook(station)) {
+            val args = Bundle().apply { putString(NewBookingFragment.ARG_STATION_ID, station.stationId) }
+            findNavController().navigate(R.id.action_global_newBookingFragment, args)
+        } else {
+            Toast.makeText(requireContext(), "${station.stationName} is not available for booking right now", Toast.LENGTH_SHORT).show()
         }
-        builder.show()
     }
 }

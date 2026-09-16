@@ -5,7 +5,7 @@
     <dimen name="radius_card_small">16dp</dimen>
     <dimen name="radius_button">14dp</dimen>
     <dimen name="radius_input">14dp</dimen>
-    <dimen name="radius_bottom_nav">24dp</dimen>
+    <dimen name="radius_bottom_nav">32dp</dimen>
     <dimen name="radius_dialog">22dp</dimen>
 
     <!-- Spacing system -->
@@ -31,6 +31,8 @@
 
     <!-- Height + bottom margin of the floating bottom-nav pill, now that content extends
          edge-to-edge behind it - screens add this as extra bottom padding to their own root
-         so scrolled content clears the pill instead of disappearing under it. -->
-    <dimen name="floating_nav_clearance">88dp</dimen>
+         so scrolled content clears the pill instead of disappearing under it. Generous on
+         purpose: the pill's actual reach from the true screen edge varies with the device's
+         gesture/nav-bar inset, and under-reserving means content visibly overlaps the pill. -->
+    <dimen name="floating_nav_clearance">120dp</dimen>
 </resources>

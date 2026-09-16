@@ -333,6 +333,10 @@
                 android:orientation="vertical"
                 android:gravity="center"
                 android:layout_marginTop="64dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:padding="16dp"
                 android:visibility="gone">
 
                 <ImageView
@@ -351,12 +355,13 @@
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnNewBookingEmpty"
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="Create your first booking" />
+                    android:layout_marginTop="4dp"
+                    android:text="Tap to view your reservations"
+                    android:textColor="@color/solar_text_secondary"
+                    android:textSize="13sp" />
             </LinearLayout>
 
         </LinearLayout>

@@ -15,6 +15,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
 import com.example.smart_solar_mgt_app.R
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.AccountStatus
 import com.example.smart_solar_mgt_app.ui.auth.LoginActivity
@@ -30,6 +31,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
 
         val progress = view.findViewById<ProgressBar>(R.id.progressProfile)
         val groupContent = view.findViewById<View>(R.id.groupProfileContent)

@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.core.common.AppError
 import com.example.smart_solar_mgt_app.core.common.AppResult
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.EnergyTransferVerification
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -59,6 +60,7 @@ class OperatorScanFragment : Fragment(R.layout.fragment_operator_scan) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
 
         view.findViewById<MaterialButton>(R.id.btnGrantPermission).setOnClickListener {
             requestPermissionLauncher.launch(Manifest.permission.CAMERA)

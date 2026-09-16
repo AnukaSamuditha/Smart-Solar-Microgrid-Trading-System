@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
 import com.example.smart_solar_mgt_app.R
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -49,6 +50,8 @@ class EditProfileFragment : Fragment(R.layout.fragment_edit_profile) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
+        view.findViewById<View>(R.id.btnBack).setOnClickListener { findNavController().popBackStack() }
 
         tilFullName = view.findViewById(R.id.tilFullName)
         tilEmail = view.findViewById(R.id.tilEmail)

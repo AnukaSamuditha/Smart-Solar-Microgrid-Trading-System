@@ -4,8 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/solar_background"
-    android:fitsSystemWindows="true">
+    android:background="@color/solar_background">
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/navHostOperator"
@@ -15,17 +14,18 @@
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_operator"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/bottomNavOperator"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavOperator"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="64dp"
         android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="16dp"
         android:background="@drawable/bg_bottom_nav_floating"
+        app:labelVisibilityMode="unlabeled"
         app:menu="@menu/bottom_nav_operator"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

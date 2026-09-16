@@ -15,10 +15,11 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
-import androidx.navigation.navOptions
 import com.example.smart_solar_mgt_app.R
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 
 /**
@@ -43,6 +44,8 @@ class BookingActionSummaryFragment : Fragment(R.layout.fragment_booking_action_s
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
+        view.findViewById<View>(R.id.btnBack).setOnClickListener { findNavController().popBackStack() }
 
         val progress = view.findViewById<ProgressBar>(R.id.progressActionSummary)
         val tvError = view.findViewById<TextView>(R.id.tvActionSummaryError)
@@ -59,11 +62,11 @@ class BookingActionSummaryFragment : Fragment(R.layout.fragment_booking_action_s
         val ivActionIcon = view.findViewById<ImageView>(R.id.ivActionIcon)
 
         btnBackToBookings.setOnClickListener {
-            findNavController().navigate(
-                R.id.bookingsFragment,
-                null,
-                navOptions { popUpTo(R.id.bookingsFragment) { inclusive = false } }
-            )
+            // Switching tabs this way (rather than a plain findNavController().navigate) keeps
+            // the bottom nav's own back-stack/state bookkeeping consistent - a raw navigate call
+            // to another bottom-nav destination left the Home tab unable to switch back.
+            requireActivity().findViewById<BottomNavigationView>(R.id.bottomNavProsumer).selectedItemId =
+                R.id.bookingsFragment
         }
 
         viewModel.state.observe(viewLifecycleOwner) { state ->

@@ -5,12 +5,8 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -42,15 +38,26 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
  * StationMarkerIcons as the Prosumer's tab (pure display, no role-specific logic there).
  *
  * Unlike the Prosumer's Map/List toggle, the map fills the whole screen (including behind the
- * status bar/notch - this fragment alone pulls its root view up under it via a negative top
- * margin sized from the window insets, so Home/Bookings/Scan are unaffected) and the station
- * list lives in a persistent bottom sheet (own layout, fragment_operator_map.xml) that the
- * operator drags between a collapsed peek and half the screen - capped there via
- * BottomSheetBehavior.expandedOffset so it never covers more than that. The map's own padding
- * is kept in sync with the sheet's state so its logical center/zoom-to-fit stay in the visible
- * (unobstructed) top portion. Tapping a station - in the list or as a marker - zooms the map to
- * that station instead of opening a detail dialog, since the list row already shows the same
- * capacity/slots/status detail.
+ * status bar/notch and the floating nav pill, courtesy of the edge-to-edge NavHost set up in
+ * OperatorMainActivity) and the station list lives in a persistent bottom sheet (own layout,
+ * fragment_operator_map.xml) that the operator drags between a collapsed peek and half the
+ * screen - capped there via BottomSheetBehavior.expandedOffset so it never covers more than
+ * that.
+ *
+ * The list's own container (R.id.stationListArea) gets its height set explicitly in code here,
+ * recalculated continuously as the sheet drags (onSlide) rather than once: the sheet's internal
+ * content lives in a coordinate space that is much taller than any single visible window into
+ * it (that's how BottomSheetBehavior does the collapsed/expanded slide), so "how much of the
+ * list is visible right now" changes with the sheet's position - a single fixed height cannot
+ * correctly reserve the nav pill's footprint for both the collapsed peek and the expanded state
+ * at once. (Also, layout_weight on this container does not reliably shrink the way it would in
+ * a plain LinearLayout when BottomSheetBehavior is involved - confirmed empirically - so the
+ * height cannot be delegated to XML at all here.) Without this, station rows can render - and
+ * be hit-tested - underneath the pill, which draws on top and steals their taps. The map's own
+ * padding is kept in sync with the sheet's state so its logical center/zoom-to-fit stay in the
+ * visible (unobstructed) top portion. Tapping a station - in the list or as a marker - zooms the
+ * map to that station instead of opening a detail dialog, since the list row already shows the
+ * same capacity/slots/status detail.
  */
 class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReadyCallback {
 
@@ -64,7 +71,9 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReady
     private var pendingStations: List<SolarStation>? = null
 
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<View>
+    private lateinit var bottomSheet: View
     private var containerHeight = 0
+    private lateinit var stationListArea: View
     private lateinit var swipeRefreshMap: SwipeRefreshLayout
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressMap: ProgressBar
@@ -75,32 +84,30 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReady
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Let the map bleed under the status bar/notch: push this fragment's own root up by
-        // exactly the top inset, while its bottom edge stays anchored (see class doc). Scoped
-        // to this fragment only - no other operator screen is affected.
-        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
-            val statusBarInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-            val params = v.layoutParams as? ViewGroup.MarginLayoutParams
-            if (params != null && params.topMargin != -statusBarInset) {
-                params.topMargin = -statusBarInset
-                v.layoutParams = params
-            }
-            insets
-        }
-        ViewCompat.requestApplyInsets(view)
+        // The NavHost itself now bleeds edge-to-edge for every operator screen (see
+        // OperatorMainActivity), so the map here already reaches the true top/bottom edges
+        // with no extra work - unlike every other screen, this one deliberately doesn't call
+        // View.applyEdgeToEdgeContentPadding, since the map is meant to show through.
 
-        val bottomSheet = view.findViewById<View>(R.id.bottomSheetStations)
+        bottomSheet = view.findViewById(R.id.bottomSheetStations)
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet).apply {
             state = BottomSheetBehavior.STATE_COLLAPSED
+            // Tall enough that the collapsed peek shows a full first card, not just a sliver -
+            // the nav-pill clearance itself comes from updateListAreaHeight, not from this.
+            peekHeight = resources.getDimensionPixelSize(R.dimen.bottom_sheet_peek_height) +
+                resources.getDimensionPixelSize(R.dimen.floating_nav_clearance)
         }
+        stationListArea = view.findViewById(R.id.stationListArea)
+
         // Cap "maximized" at half the screen instead of full-screen. A persistent listener
-        // (not a one-shot doOnLayout) because the edge-to-edge inset margin above triggers a
-        // second, taller layout pass shortly after the first.
-        view.addOnLayoutChangeListener { v, _, _, _, bottom, _, _, _, oldBottom ->
+        // (not a one-shot doOnLayout) because the edge-to-edge NavHost's own inset margins
+        // trigger a second, taller layout pass shortly after the first.
+        view.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
             if (v.height != containerHeight) {
                 containerHeight = v.height
                 bottomSheetBehavior.expandedOffset = v.height / 2
             }
+            updateListAreaHeight()
         }
         bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(sheet: View, newState: Int) {
@@ -111,9 +118,10 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReady
                     else -> return
                 }
                 googleMap?.setPadding(0, 0, 0, bottomPadding)
+                updateListAreaHeight()
             }
 
-            override fun onSlide(sheet: View, slideOffset: Float) = Unit
+            override fun onSlide(sheet: View, slideOffset: Float) = updateListAreaHeight()
         })
 
         swipeRefreshMap = view.findViewById(R.id.swipeRefreshMap)
@@ -220,6 +228,25 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReady
         val network = connectivityManager.activeNetwork ?: return false
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    /**
+     * Sizes stationListArea so it ends exactly floating_nav_clearance above the true screen
+     * bottom, no matter where the sheet currently sits. bottomSheet.top is the sheet's current
+     * on-screen position (varies continuously while dragging); the visible window into its
+     * content is (containerHeight - bottomSheet.top), and stationListArea.top (fixed - it's
+     * just the drag handle + title above it) tells us where the list starts within that window.
+     */
+    private fun updateListAreaHeight() {
+        if (containerHeight == 0) return
+        val visibleWindowHeight = containerHeight - bottomSheet.top
+        val clearance = resources.getDimensionPixelSize(R.dimen.floating_nav_clearance)
+        val newHeight = (visibleWindowHeight - stationListArea.top - clearance).coerceAtLeast(0)
+        val lp = stationListArea.layoutParams
+        if (lp.height != newHeight) {
+            lp.height = newHeight
+            stationListArea.layoutParams = lp
+        }
     }
 
     /** Zooms the map to the station and collapses the sheet so the zoomed-in map is visible. */

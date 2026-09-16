@@ -13,9 +13,11 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smart_solar_mgt_app.R
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
 import com.example.smart_solar_mgt_app.ui.prosumer.qrpass.QrPassFragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 
@@ -24,13 +26,19 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private val viewModel: HomeViewModel by viewModels {
         viewModelFactory {
             initializer {
-                HomeViewModel(ServiceLocator.bookingRepository, ServiceLocator.stationRepository, ServiceLocator.securityManager)
+                HomeViewModel(
+                    ServiceLocator.bookingRepository,
+                    ServiceLocator.stationRepository,
+                    ServiceLocator.securityManager,
+                    ServiceLocator.authRepository
+                )
             }
         }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
 
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshHome)
         val progressHome = view.findViewById<ProgressBar>(R.id.progressHome)
@@ -48,11 +56,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val tvUpcomingStatus = view.findViewById<TextView>(R.id.tvUpcomingStatus)
         val btnViewQr = view.findViewById<MaterialButton>(R.id.btnViewQr)
         val btnNewBooking = view.findViewById<MaterialButton>(R.id.btnNewBooking)
-        val btnNewBookingEmpty = view.findViewById<MaterialButton>(R.id.btnNewBookingEmpty)
 
-        val goToNewBooking = { findNavController().navigate(R.id.action_global_newBookingFragment) }
-        btnNewBooking.setOnClickListener { goToNewBooking() }
-        btnNewBookingEmpty.setOnClickListener { goToNewBooking() }
+        btnNewBooking.setOnClickListener { findNavController().navigate(R.id.action_global_newBookingFragment) }
+        emptyStateHome.setOnClickListener {
+            // Switching tabs this way (rather than a plain findNavController().navigate) keeps
+            // the bottom nav's own back-stack/state bookkeeping consistent - a raw navigate call
+            // to another bottom-nav destination left the Home tab unable to switch back.
+            requireActivity().findViewById<BottomNavigationView>(R.id.bottomNavProsumer).selectedItemId =
+                R.id.bookingsFragment
+        }
 
         swipeRefresh.setOnRefreshListener { viewModel.loadDashboard() }
 
@@ -62,8 +74,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             groupContent.isVisible = state is HomeUiState.Loaded
             emptyStateHome.isVisible = state is HomeUiState.Empty
 
+            when (state) {
+                is HomeUiState.Empty -> tvWelcome.text = "Welcome, ${state.welcomeName}"
+                is HomeUiState.Loaded -> tvWelcome.text = "Welcome, ${state.welcomeName}"
+                HomeUiState.Loading -> Unit
+            }
+
             if (state is HomeUiState.Loaded) {
-                tvWelcome.text = "Welcome, ${state.welcomeName}"
                 tvPendingCount.text = state.counts.pending.toString()
                 tvApprovedCount.text = state.counts.approved.toString()
                 tvCompletedCount.text = state.counts.completed.toString()

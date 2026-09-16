@@ -1,11 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/solar_background"
-    android:fillViewport="true">
+    android:orientation="vertical"
+    android:background="@color/solar_background">
+
+    <ImageButton
+        android:id="@+id/btnBack"
+        style="@style/Widget.App.Button.Back"
+        android:layout_marginStart="@dimen/spacing_small_gap"
+        android:layout_marginTop="@dimen/spacing_small_gap" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -125,4 +137,5 @@
             android:visibility="gone" />
 
     </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</LinearLayout>

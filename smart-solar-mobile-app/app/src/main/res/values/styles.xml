@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- ===================== Shapes ===================== -->
+
+    <style name="ShapeAppearanceOverlay.App.Circle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
     <!-- ===================== Buttons ===================== -->
 
     <style name="Widget.App.Button.Primary" parent="Widget.Material3.Button">
@@ -99,7 +106,10 @@
         <item name="itemRippleColor">@color/solar_surface_highlight</item>
         <item name="itemActiveIndicatorStyle">@null</item>
         <item name="elevation">0dp</item>
-        <item name="labelVisibilityMode">labeled</item>
+        <item name="labelVisibilityMode">unlabeled</item>
+        <item name="itemPaddingTop">0dp</item>
+        <item name="itemPaddingBottom">0dp</item>
+        <item name="itemIconSize">22dp</item>
     </style>
 
     <style name="Widget.App.TabLayout" parent="Widget.Material3.TabLayout">
@@ -196,6 +206,16 @@
         <item name="android:layout_height">36dp</item>
         <item name="android:background">@drawable/bg_circle_surface</item>
         <item name="android:padding">8dp</item>
+    </style>
+
+    <style name="Widget.App.Button.Back" parent="">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:src">@drawable/ic_back</item>
+        <item name="android:contentDescription">@string/back</item>
+        <item name="tint">@color/solar_text_primary</item>
     </style>
 
 </resources>

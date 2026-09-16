@@ -59,12 +59,16 @@
             android:text="Charging Stations"
             android:textAppearance="@style/TextAppearance.App.SectionTitle" />
 
+        <!-- Height is set explicitly in code (OperatorMapFragment), not via layout_weight:
+             BottomSheetBehavior's measurement of this LinearLayout does not distribute weight
+             to fixed-size siblings the normal way, so a weighted height here would let station
+             rows render behind the floating nav pill regardless of any sibling spacer/margin. -->
         <FrameLayout
+            android:id="@+id/stationListArea"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_height="0dp">
 
-            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            <com.example.smart_solar_mgt_app.core.common.NestedScrollAwareSwipeRefreshLayout
                 android:id="@+id/swipeRefreshMap"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
@@ -75,7 +79,7 @@
                     android:layout_height="match_parent"
                     android:paddingBottom="8dp"
                     android:clipToPadding="false" />
-            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+            </com.example.smart_solar_mgt_app.core.common.NestedScrollAwareSwipeRefreshLayout>
 
             <ProgressBar
                 android:id="@+id/progressMap"

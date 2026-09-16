@@ -14,7 +14,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -23,7 +24,9 @@
             android:gravity="center_vertical">
 
             <FrameLayout
-                style="@style/App.IconContainer.Small">
+                style="@style/App.IconContainer.Small"
+                android:layout_width="32dp"
+                android:layout_height="32dp">
 
                 <ImageView
                     android:layout_width="match_parent"
@@ -38,34 +41,49 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="10dp"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:textColor="@color/solar_text_primary"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvStationStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textAppearance="@style/TextAppearance.App.StatusText" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvStationCapacity"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:textColor="@color/solar_text_secondary"
-            android:textSize="13sp" />
+            android:layout_marginStart="42dp"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/tvStationSlots"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textColor="@color/solar_text_secondary"
-            android:textSize="13sp" />
+            <TextView
+                android:id="@+id/tvStationCapacity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/solar_text_secondary"
+                android:textSize="12sp" />
 
-        <TextView
-            android:id="@+id/tvStationStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAppearance="@style/TextAppearance.App.StatusText" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="6dp"
+                android:text="•"
+                android:textColor="@color/solar_text_muted"
+                android:textSize="12sp" />
 
+            <TextView
+                android:id="@+id/tvStationSlots"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/solar_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

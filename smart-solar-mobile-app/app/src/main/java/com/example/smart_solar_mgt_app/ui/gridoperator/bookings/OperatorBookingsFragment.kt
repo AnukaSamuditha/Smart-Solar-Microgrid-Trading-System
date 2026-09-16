@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.smart_solar_mgt_app.R
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.ui.prosumer.bookings.BookingScope
 import com.google.android.material.tabs.TabLayout
@@ -27,6 +28,7 @@ class OperatorBookingsFragment : Fragment(R.layout.fragment_operator_bookings) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
 
         val etSearch = view.findViewById<TextInputEditText>(R.id.etOpSearch)
         val tabLayout = view.findViewById<TabLayout>(R.id.tabLayoutOpBookings)

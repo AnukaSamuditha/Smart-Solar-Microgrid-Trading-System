@@ -15,9 +15,11 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.smart_solar_mgt_app.R
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import java.time.Instant
@@ -34,6 +36,7 @@ class BookingsFragment : Fragment(R.layout.fragment_bookings) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
 
         val etSearch = view.findViewById<TextInputEditText>(R.id.etSearch)
         val etDateFilter = view.findViewById<TextInputEditText>(R.id.etDateFilter)
@@ -43,6 +46,9 @@ class BookingsFragment : Fragment(R.layout.fragment_bookings) {
         val emptyState = view.findViewById<View>(R.id.emptyStateBookings)
         val tvEmptyMessage = view.findViewById<TextView>(R.id.tvEmptyBookingsMessage)
         val btnClearFilters = view.findViewById<MaterialButton>(R.id.btnClearFilters)
+        val fabNewBooking = view.findViewById<FloatingActionButton>(R.id.fabNewBooking)
+
+        fabNewBooking.setOnClickListener { findNavController().navigate(R.id.action_global_newBookingFragment) }
 
         val adapter = BookingsAdapter { item ->
             val args = Bundle().apply { putString(BookingDetailFragment.ARG_BOOKING_ID, item.bookingId) }

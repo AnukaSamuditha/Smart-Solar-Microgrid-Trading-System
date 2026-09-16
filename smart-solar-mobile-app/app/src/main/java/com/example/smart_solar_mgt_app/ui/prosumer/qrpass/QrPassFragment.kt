@@ -10,7 +10,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.fragment.findNavController
 import com.example.smart_solar_mgt_app.R
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 
 /**
@@ -36,6 +38,8 @@ class QrPassFragment : Fragment(R.layout.fragment_qr_pass) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
+        view.findViewById<View>(R.id.btnBack).setOnClickListener { findNavController().popBackStack() }
 
         val progress = view.findViewById<ProgressBar>(R.id.progressQrPass)
         val tvError = view.findViewById<TextView>(R.id.tvQrPassError)

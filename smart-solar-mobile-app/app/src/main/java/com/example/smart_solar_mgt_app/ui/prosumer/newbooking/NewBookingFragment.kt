@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.fragment.findNavController
 import com.example.smart_solar_mgt_app.R
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.Booking
 import com.example.smart_solar_mgt_app.domain.model.SolarStation
@@ -77,6 +78,9 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
+
+        view.findViewById<View>(R.id.btnBack).setOnClickListener { findNavController().popBackStack() }
 
         selectedStationId = preselectedStationId
 

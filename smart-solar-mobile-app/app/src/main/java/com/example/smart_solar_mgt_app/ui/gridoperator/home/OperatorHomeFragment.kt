@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.core.common.AppResult
+import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.ui.auth.LoginActivity
 import com.google.android.material.button.MaterialButton
@@ -35,6 +36,7 @@ class OperatorHomeFragment : Fragment(R.layout.fragment_operator_home) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.applyEdgeToEdgeContentPadding()
 
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshOpHome)
         val progress = view.findViewById<ProgressBar>(R.id.progressOpHome)
