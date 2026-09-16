@@ -183,6 +183,7 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
 
     private fun updateCapacityHint(station: SolarStation) {
         tvCapacityHint.text = "Max available at this station: ${station.capacityKwh} kWh"
+        tvCapacityHint.isVisible = true
     }
 
     private fun showDatePicker() {

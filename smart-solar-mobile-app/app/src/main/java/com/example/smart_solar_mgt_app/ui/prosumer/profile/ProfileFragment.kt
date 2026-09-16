@@ -59,13 +59,20 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         }
 
         btnLogout.setOnClickListener {
-            viewModel.logout()
-            startActivity(
-                Intent(requireContext(), LoginActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Log Out?")
+                .setMessage("Are you sure you want to log out?")
+                .setPositiveButton("Log Out") { _, _ ->
+                    viewModel.logout()
+                    startActivity(
+                        Intent(requireContext(), LoginActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                    )
+                    requireActivity().finish()
                 }
-            )
-            requireActivity().finish()
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
         viewModel.state.observe(viewLifecycleOwner) { state ->

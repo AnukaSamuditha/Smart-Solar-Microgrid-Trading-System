@@ -230,7 +230,7 @@
                                 android:layout_height="@dimen/icon_size_small"
                                 android:contentDescription="@null"
                                 android:src="@drawable/ic_pending"
-                                app:tint="@color/status_pending" />
+                                app:tint="@color/solar_primary" />
 
                             <TextView
                                 android:id="@+id/tvPendingCount"
@@ -264,8 +264,8 @@
                                 android:layout_width="@dimen/icon_size_small"
                                 android:layout_height="@dimen/icon_size_small"
                                 android:contentDescription="@null"
-                                android:src="@drawable/ic_approved"
-                                app:tint="@color/status_approved" />
+                                android:src="@drawable/ic_circle_check"
+                                app:tint="@color/solar_primary" />
 
                             <TextView
                                 android:id="@+id/tvApprovedCount"
@@ -300,7 +300,7 @@
                                 android:layout_height="@dimen/icon_size_small"
                                 android:contentDescription="@null"
                                 android:src="@drawable/ic_bolt"
-                                app:tint="@color/status_completed" />
+                                app:tint="@color/solar_primary" />
 
                             <TextView
                                 android:id="@+id/tvCompletedCount"

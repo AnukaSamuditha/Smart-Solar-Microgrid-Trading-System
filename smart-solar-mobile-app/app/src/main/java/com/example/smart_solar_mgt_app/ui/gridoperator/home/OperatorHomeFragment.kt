@@ -21,6 +21,7 @@ import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.ui.auth.LoginActivity
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,13 +55,20 @@ class OperatorHomeFragment : Fragment(R.layout.fragment_operator_home) {
 
         swipeRefresh.setOnRefreshListener { viewModel.load() }
         btnLogout.setOnClickListener {
-            ServiceLocator.securityManager.logout()
-            startActivity(
-                Intent(requireContext(), LoginActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Log Out?")
+                .setMessage("Are you sure you want to log out?")
+                .setPositiveButton("Log Out") { _, _ ->
+                    ServiceLocator.securityManager.logout()
+                    startActivity(
+                        Intent(requireContext(), LoginActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                    )
+                    requireActivity().finish()
                 }
-            )
-            requireActivity().finish()
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
         viewModel.state.observe(viewLifecycleOwner) { state ->

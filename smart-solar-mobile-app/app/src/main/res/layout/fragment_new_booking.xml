@@ -114,11 +114,11 @@
             android:id="@+id/tvCapacityHint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_small_gap"
-            android:background="@drawable/bg_info_container"
-            android:padding="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="4dp"
             android:textColor="@color/solar_text_secondary"
-            android:textSize="13sp" />
+            android:textSize="13sp"
+            android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnConfirmBooking"

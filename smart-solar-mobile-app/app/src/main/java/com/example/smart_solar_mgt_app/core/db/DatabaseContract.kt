@@ -7,7 +7,7 @@ package com.example.smart_solar_mgt_app.core.db
 object DatabaseContract {
 
     const val DATABASE_NAME = "smart_solar.db"
-    const val DATABASE_VERSION = 2
+    const val DATABASE_VERSION = 3
 
     object Users {
         const val TABLE = "users"

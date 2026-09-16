@@ -7,6 +7,7 @@
     <dimen name="radius_input">14dp</dimen>
     <dimen name="radius_bottom_nav">32dp</dimen>
     <dimen name="radius_dialog">22dp</dimen>
+    <dimen name="radius_chip">8dp</dimen>
 
     <!-- Spacing system -->
     <dimen name="spacing_screen_horizontal">20dp</dimen>
@@ -23,7 +24,7 @@
     <dimen name="text_body">15sp</dimen>
     <dimen name="text_metadata">12sp</dimen>
 
-    <dimen name="icon_size_small">20dp</dimen>
+    <dimen name="icon_size_small">32dp</dimen>
     <dimen name="icon_size_medium">28dp</dimen>
     <dimen name="avatar_size">56dp</dimen>
 

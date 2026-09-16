@@ -1,16 +1,17 @@
 package com.example.smart_solar_mgt_app.ui.prosumer.bookings
 
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.smart_solar_mgt_app.R
-import com.example.smart_solar_mgt_app.core.common.SyncStatus
 import com.example.smart_solar_mgt_app.domain.model.BookingListItem
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
 import com.google.android.material.card.MaterialCardView
@@ -31,17 +32,22 @@ class BookingsAdapter(
     class ViewHolder(private val card: MaterialCardView) : RecyclerView.ViewHolder(card) {
         private val tvStation: TextView = card.findViewById(R.id.tvBookingStation)
         private val tvDateTime: TextView = card.findViewById(R.id.tvBookingDateTime)
-        private val tvEnergy: TextView = card.findViewById(R.id.tvBookingEnergy)
         private val tvStatus: TextView = card.findViewById(R.id.tvBookingStatus)
         private val ivSyncPending: ImageView = card.findViewById(R.id.ivSyncPending)
 
         fun bind(item: BookingListItem, onItemClick: (BookingListItem) -> Unit) {
             tvStation.text = item.stationName
-            tvDateTime.text = "${item.bookingDate} at ${item.bookingTime}"
-            tvEnergy.text = "${item.energyAmount} kWh"
+            tvDateTime.text = "${item.bookingDate} at ${item.bookingTime}  •  ${item.energyAmount} kWh"
             tvStatus.text = item.status.name
-            tvStatus.setTextColor(colorFor(item.status))
-            ivSyncPending.isVisible = item.syncStatus != SyncStatus.SYNCED
+            val color = colorFor(item.status)
+            tvStatus.setTextColor(color)
+            tvStatus.backgroundTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(color, 38))
+            // No background sync worker exists yet in this offline-first phase (see
+            // core/common/SyncStatus.kt) - every write sets PENDING_SYNC and nothing ever
+            // resolves it back to SYNCED, so showing this for "not yet synced" made it appear
+            // permanently on every booking a user actually creates/approves/cancels rather than
+            // only while a real sync is in flight. Hidden until a real sync job can report that.
+            ivSyncPending.isVisible = false
             card.setOnClickListener { onItemClick(item) }
         }
 

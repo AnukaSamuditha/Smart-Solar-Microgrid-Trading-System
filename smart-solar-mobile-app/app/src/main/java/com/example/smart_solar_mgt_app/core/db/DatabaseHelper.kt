@@ -38,11 +38,21 @@ class DatabaseHelper(context: Context) :
 
         seedStations(db)
         seedGridOperator(db)
+        seedDemoProsumer(db)
+        seedDemoBookings(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
             migrateBookingStatusConfirmedToApproved(db)
+        }
+        if (oldVersion < 3) {
+            // Adds the demo prosumer + sample bookings to installs that already exist on-device
+            // (not just fresh ones via onCreate) - CONFLICT_IGNORE in both seed functions makes
+            // this safe to run against a database that already has this data, or where the
+            // fixed demo NIC happens to collide with something a real registration created.
+            seedDemoProsumer(db)
+            seedDemoBookings(db)
         }
         // Future schema changes land here as further incremental `if (oldVersion < N)` steps,
         // never a single drop-and-recreate of the whole database.
@@ -144,6 +154,63 @@ class DatabaseHelper(context: Context) :
         }
         db.insert(DatabaseContract.Users.TABLE, null, values)
     }
+
+    /** Dev-only seeded account so the Prosumer flow has something to log in as out of the box. */
+    private fun seedDemoProsumer(db: SQLiteDatabase) {
+        val values = ContentValues().apply {
+            put(DatabaseContract.Users.COL_NIC, "PR0000001")
+            put(DatabaseContract.Users.COL_NAME, "Kasun Perera")
+            put(DatabaseContract.Users.COL_EMAIL, "prosumer@smartsolar.test")
+            put(DatabaseContract.Users.COL_PHONE, null as String?)
+            put(DatabaseContract.Users.COL_ADDRESS, null as String?)
+            put(DatabaseContract.Users.COL_PASSWORD_HASH, PasswordHasher.hash("Prosumer@123".toCharArray()))
+            put(DatabaseContract.Users.COL_ROLE, "PROSUMER")
+            put(DatabaseContract.Users.COL_ACCOUNT_STATUS, "ACTIVE")
+        }
+        db.insertWithOnConflict(DatabaseContract.Users.TABLE, null, values, SQLiteDatabase.CONFLICT_IGNORE)
+    }
+
+    /**
+     * A spread of bookings across every status for the demo prosumer, so every screen has
+     * something to show right after install instead of empty states everywhere: two PENDING
+     * (left for the Grid Operator demo account to actually approve/reject, exercising that real
+     * flow rather than faking an already-APPROVED booking with no genuine signed QR transaction
+     * behind it), one COMPLETED and one CANCELLED for the History tab.
+     */
+    private fun seedDemoBookings(db: SQLiteDatabase) {
+        val today = java.time.LocalDate.now()
+        val seedBookings = listOf(
+            SeedBooking("seed-booking-001", "station-001", today.plusDays(1).toString(), "09:00", 10.0, "PENDING"),
+            SeedBooking("seed-booking-002", "station-003", today.plusDays(2).toString(), "14:00", 12.0, "PENDING"),
+            SeedBooking("seed-booking-003", "station-005", today.minusDays(3).toString(), "11:00", 20.0, "COMPLETED"),
+            SeedBooking("seed-booking-004", "station-002", today.minusDays(5).toString(), "16:00", 8.0, "CANCELLED")
+        )
+        val now = System.currentTimeMillis()
+        for (booking in seedBookings) {
+            val values = ContentValues().apply {
+                put(DatabaseContract.Bookings.COL_BOOKING_ID, booking.id)
+                put(DatabaseContract.Bookings.COL_PROSUMER_NIC, "PR0000001")
+                put(DatabaseContract.Bookings.COL_STATION_ID, booking.stationId)
+                put(DatabaseContract.Bookings.COL_BOOKING_DATE, booking.date)
+                put(DatabaseContract.Bookings.COL_BOOKING_TIME, booking.time)
+                put(DatabaseContract.Bookings.COL_ENERGY_AMOUNT, booking.energyAmount)
+                put(DatabaseContract.Bookings.COL_STATUS, booking.status)
+                put(DatabaseContract.Bookings.COL_SYNC_STATUS, "SYNCED")
+                put(DatabaseContract.Bookings.COL_CREATED_AT, now)
+                put(DatabaseContract.Bookings.COL_UPDATED_AT, now)
+            }
+            db.insertWithOnConflict(DatabaseContract.Bookings.TABLE, null, values, SQLiteDatabase.CONFLICT_IGNORE)
+        }
+    }
+
+    private data class SeedBooking(
+        val id: String,
+        val stationId: String,
+        val date: String,
+        val time: String,
+        val energyAmount: Double,
+        val status: String
+    )
 
     private data class SeedStation(
         val id: String,

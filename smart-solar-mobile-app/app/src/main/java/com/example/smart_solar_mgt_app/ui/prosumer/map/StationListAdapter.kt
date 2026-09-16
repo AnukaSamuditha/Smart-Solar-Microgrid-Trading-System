@@ -1,9 +1,11 @@
 package com.example.smart_solar_mgt_app.ui.prosumer.map
 
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -36,7 +38,9 @@ class StationListAdapter(
             tvCapacity.text = "${station.capacityKwh} kWh"
             tvSlots.text = "${station.availableSlots} slots left"
             tvStatus.text = station.status.name
-            tvStatus.setTextColor(colorFor(station.status))
+            val color = colorFor(station.status)
+            tvStatus.setTextColor(color)
+            tvStatus.backgroundTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(color, 38))
             card.setOnClickListener { onItemClick(station) }
         }
 
