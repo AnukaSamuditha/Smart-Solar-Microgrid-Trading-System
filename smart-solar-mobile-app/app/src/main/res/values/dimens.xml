@@ -10,7 +10,7 @@
     <dimen name="radius_chip">8dp</dimen>
 
     <!-- Spacing system -->
-    <dimen name="spacing_screen_horizontal">20dp</dimen>
+    <dimen name="spacing_screen_horizontal">16dp</dimen>
     <dimen name="spacing_section_gap">20dp</dimen>
     <dimen name="spacing_card_gap">12dp</dimen>
     <dimen name="spacing_card_padding">18dp</dimen>

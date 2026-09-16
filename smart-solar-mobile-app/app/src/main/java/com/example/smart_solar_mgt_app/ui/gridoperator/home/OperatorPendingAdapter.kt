@@ -28,15 +28,13 @@ class OperatorPendingAdapter(
         private val tvNic: TextView = card.findViewById(R.id.tvOpNic)
         private val tvStation: TextView = card.findViewById(R.id.tvOpStation)
         private val tvDateTime: TextView = card.findViewById(R.id.tvOpDateTime)
-        private val tvEnergy: TextView = card.findViewById(R.id.tvOpEnergy)
         private val btnApprove: MaterialButton = card.findViewById(R.id.btnOpApprove)
         private val btnReject: MaterialButton = card.findViewById(R.id.btnOpReject)
 
         fun bind(item: PendingApprovalItem, onApprove: (PendingApprovalItem) -> Unit, onReject: (PendingApprovalItem) -> Unit) {
             tvNic.text = "NIC: ${item.prosumerNic}"
             tvStation.text = item.stationName
-            tvDateTime.text = "${item.bookingDate} at ${item.bookingTime}"
-            tvEnergy.text = "${item.energyAmount} kWh"
+            tvDateTime.text = "${item.bookingDate} at ${item.bookingTime}  •  ${item.energyAmount} kWh"
             btnApprove.setOnClickListener { onApprove(item) }
             btnReject.setOnClickListener { onReject(item) }
         }

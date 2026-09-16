@@ -1,9 +1,11 @@
 package com.example.smart_solar_mgt_app.ui.gridoperator.bookings
 
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -28,16 +30,16 @@ class OperatorBookingsAdapter : ListAdapter<BookingListItem, OperatorBookingsAda
         private val tvNic: TextView = card.findViewById(R.id.tvObNic)
         private val tvStation: TextView = card.findViewById(R.id.tvObStation)
         private val tvDateTime: TextView = card.findViewById(R.id.tvObDateTime)
-        private val tvEnergy: TextView = card.findViewById(R.id.tvObEnergy)
         private val tvStatus: TextView = card.findViewById(R.id.tvObStatus)
 
         fun bind(item: BookingListItem) {
             tvNic.text = "NIC: ${item.prosumerNic}"
             tvStation.text = item.stationName
-            tvDateTime.text = "${item.bookingDate} at ${item.bookingTime}"
-            tvEnergy.text = "${item.energyAmount} kWh"
+            tvDateTime.text = "${item.bookingDate} at ${item.bookingTime}  •  ${item.energyAmount} kWh"
             tvStatus.text = item.status.name
-            tvStatus.setTextColor(colorFor(item.status))
+            val color = colorFor(item.status)
+            tvStatus.setTextColor(color)
+            tvStatus.backgroundTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(color, 38))
         }
 
         private fun colorFor(status: BookingStatus): Int = when (status) {
