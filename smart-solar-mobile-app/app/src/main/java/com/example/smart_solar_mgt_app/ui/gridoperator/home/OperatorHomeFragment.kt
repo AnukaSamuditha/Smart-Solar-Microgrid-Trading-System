@@ -39,6 +39,7 @@ class OperatorHomeFragment : Fragment(R.layout.fragment_operator_home) {
         val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshOpHome)
         val progress = view.findViewById<ProgressBar>(R.id.progressOpHome)
         val tvEmpty = view.findViewById<TextView>(R.id.tvOpHomeEmpty)
+        val tvPendingCount = view.findViewById<TextView>(R.id.tvOpPendingCount)
         val recyclerView = view.findViewById<RecyclerView>(R.id.rvOpPending)
         val btnLogout = view.findViewById<MaterialButton>(R.id.btnOpLogout)
 
@@ -65,6 +66,12 @@ class OperatorHomeFragment : Fragment(R.layout.fragment_operator_home) {
             progress.isVisible = state is OperatorHomeUiState.Loading
             tvEmpty.isVisible = state is OperatorHomeUiState.Empty
             recyclerView.isVisible = state is OperatorHomeUiState.Loaded
+
+            tvPendingCount.text = when (state) {
+                is OperatorHomeUiState.Loaded -> state.items.size.toString()
+                OperatorHomeUiState.Empty -> "0"
+                OperatorHomeUiState.Loading -> "-"
+            }
 
             if (state is OperatorHomeUiState.Loaded) {
                 adapter.submitList(state.items)

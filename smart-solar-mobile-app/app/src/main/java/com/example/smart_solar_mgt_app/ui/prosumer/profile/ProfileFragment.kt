@@ -1,6 +1,7 @@
 package com.example.smart_solar_mgt_app.ui.prosumer.profile
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.ProgressBar
@@ -73,10 +74,11 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 is ProfileUiState.Loaded -> {
                     val user = state.user
                     tvFullName.text = user.name
-                    tvAccountStatus.text = "Status: ${user.accountStatus.name.lowercase().replace('_', ' ')}"
+                    tvAccountStatus.text = user.accountStatus.name.replace('_', ' ')
+                    tvAccountStatus.setTextColor(colorFor(user.accountStatus))
                     tvNic.text = "NIC: ${user.nic}"
-                    tvEmail.text = "Email: ${user.email}"
-                    tvPhone.text = "Phone: ${user.phone.orEmpty()}"
+                    tvEmail.text = user.email
+                    tvPhone.text = user.phone.orEmpty()
                     tvAddress.text = "Address: ${user.address.orEmpty()}"
 
                     when (user.accountStatus) {
@@ -102,5 +104,12 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     override fun onResume() {
         super.onResume()
         viewModel.loadProfile()
+    }
+
+    private fun colorFor(status: AccountStatus): Int = when (status) {
+        AccountStatus.ACTIVE -> Color.parseColor("#2E7D32")
+        AccountStatus.PENDING_APPROVAL, AccountStatus.DEACTIVATION_REQUESTED -> Color.parseColor("#F9A825")
+        AccountStatus.SUSPENDED, AccountStatus.REJECTED -> Color.parseColor("#C62828")
+        AccountStatus.DEACTIVATED -> Color.parseColor("#757575")
     }
 }

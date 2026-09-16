@@ -15,15 +15,28 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <View
+        android:id="@+id/scanFrame"
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:background="@drawable/bg_scan_frame"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <TextView
         android:id="@+id/tvScanHint"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#AA000000"
+        android:background="#CC000000"
         android:gravity="center"
-        android:padding="16dp"
-        android:text="Point the camera at the prosumer's Energy Transfer Pass QR code"
-        android:textColor="#FFFFFF"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="18dp"
+        android:text="Scan Energy Transfer Pass"
+        android:textColor="@color/solar_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -32,6 +45,7 @@
         android:id="@+id/groupNoPermission"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:background="@color/solar_background"
         android:orientation="vertical"
         android:gravity="center"
         android:padding="32dp"
@@ -46,13 +60,15 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:text="Camera permission is required to scan Energy Transfer Pass QR codes"
-            android:textColor="#FFFFFF" />
+            android:textColor="@color/solar_text_secondary"
+            android:textSize="15sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnGrantPermission"
+            style="@style/Widget.App.Button.Primary"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="20dp"
             android:text="Grant Camera Permission" />
     </LinearLayout>
 

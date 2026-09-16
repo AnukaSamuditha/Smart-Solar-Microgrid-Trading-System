@@ -26,4 +26,11 @@
     <dimen name="icon_size_small">20dp</dimen>
     <dimen name="icon_size_medium">28dp</dimen>
     <dimen name="avatar_size">56dp</dimen>
+
+    <dimen name="bottom_sheet_peek_height">150dp</dimen>
+
+    <!-- Height + bottom margin of the floating bottom-nav pill, now that content extends
+         edge-to-edge behind it - screens add this as extra bottom padding to their own root
+         so scrolled content clears the pill instead of disappearing under it. -->
+    <dimen name="floating_nav_clearance">88dp</dimen>
 </resources>

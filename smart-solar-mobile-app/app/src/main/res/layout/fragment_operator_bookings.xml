@@ -4,25 +4,40 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@color/solar_background"
+    android:fitsSystemWindows="true">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_screen_horizontal"
+        android:layout_marginTop="20dp"
+        android:text="All Reservations"
+        android:textAppearance="@style/TextAppearance.App.ScreenTitle" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:hint="Search by station or NIC">
+        android:layout_marginHorizontal="@dimen/spacing_screen_horizontal"
+        android:layout_marginTop="16dp"
+        android:hint="Search by station or NIC"
+        app:startIconDrawable="@drawable/ic_search"
+        app:startIconTint="@color/solar_text_secondary">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etOpSearch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text" />
+            android:inputType="text"
+            android:textColor="@color/solar_text_primary" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayoutOpBookings"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_small_gap"
         app:tabMode="fixed">
 
         <com.google.android.material.tabs.TabItem
@@ -38,6 +53,8 @@
             android:text="History" />
     </com.google.android.material.tabs.TabLayout>
 
+    <View style="@style/App.Divider" />
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -46,6 +63,7 @@
             android:id="@+id/rvOpBookings"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:paddingHorizontal="@dimen/spacing_screen_horizontal"
             android:paddingVertical="8dp"
             android:clipToPadding="false" />
 
@@ -54,13 +72,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="48dp" />
+            android:layout_marginTop="48dp"
+            android:indeterminateTint="@color/solar_primary" />
 
         <TextView
             android:id="@+id/tvOpBookingsEmpty"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:textColor="@color/solar_text_secondary"
             android:textSize="16sp"
             android:visibility="gone" />
 
