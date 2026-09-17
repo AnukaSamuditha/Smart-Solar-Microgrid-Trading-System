@@ -1,8 +1,8 @@
 // UserEndpoints.cs
 // Purpose: Maps user-management endpoints — self-profile for any authenticated user, and
-// Backoffice-only account creation/listing/lifecycle administration. Grid Operators have no
-// authorized route here beyond /me. See docs/authentication-implementation-approach.md,
-// section 12.
+// Backoffice-only account creation/listing/update/delete/lifecycle administration. Grid
+// Operators have no authorized route here beyond /me. See
+// docs/authentication-implementation-approach.md, section 12.
 
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -25,6 +25,8 @@ public static class UserEndpoints
         group.MapPost("/backoffice", CreateBackofficeUserAsync).RequireAuthorization(RoleNames.Backoffice);
         group.MapPost("/grid-operators", CreateGridOperatorUserAsync).RequireAuthorization(RoleNames.Backoffice);
         group.MapGet("/", ListUsersAsync).RequireAuthorization(RoleNames.Backoffice);
+        group.MapPut("/{id}", UpdateUserAsync).RequireAuthorization(RoleNames.Backoffice);
+        group.MapDelete("/{id}", DeleteUserAsync).RequireAuthorization(RoleNames.Backoffice);
         group.MapPatch("/{id}/deactivate", DeactivateUserAsync).RequireAuthorization(RoleNames.Backoffice);
         group.MapPatch("/{id}/reactivate", ReactivateUserAsync).RequireAuthorization(RoleNames.Backoffice);
 
@@ -88,6 +90,42 @@ public static class UserEndpoints
         return Results.Ok(users.Select(UserResponse.FromEntity));
     }
 
+    // update an account's email/username; blocked if the new email is already in use
+    private static async Task<IResult> UpdateUserAsync(
+        string id,
+        UpdateUserRequest request,
+        ClaimsPrincipal principal,
+        IUserService userService,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) || !request.Email.Contains('@'))
+        {
+            return Results.BadRequest(new { error = "ValidEmailRequired" });
+        }
+
+        var performedBy = principal.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? "unknown";
+        var result = await userService.UpdateAsync(id, request.Email, request.Username, performedBy, cancellationToken);
+        if (result != UserActionResult.Succeeded)
+        {
+            return MapActionResult(result);
+        }
+
+        var user = await userService.GetByIdAsync(id, cancellationToken);
+        return user is null ? Results.NotFound() : Results.Ok(UserResponse.FromEntity(user));
+    }
+
+    // permanently delete a user account; blocked for the seeded super-admin account
+    private static async Task<IResult> DeleteUserAsync(
+        string id,
+        ClaimsPrincipal principal,
+        IUserService userService,
+        CancellationToken cancellationToken)
+    {
+        var performedBy = principal.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? "unknown";
+        var result = await userService.DeleteAsync(id, performedBy, cancellationToken);
+        return MapActionResult(result);
+    }
+
     // deactivate a user account; blocked for the seeded super-admin account
     private static async Task<IResult> DeactivateUserAsync(
         string id,
@@ -118,6 +156,7 @@ public static class UserEndpoints
         UserActionResult.Succeeded => Results.NoContent(),
         UserActionResult.NotFound => Results.NotFound(),
         UserActionResult.Protected => Results.Conflict(new { error = "SeededAdminProtected" }),
+        UserActionResult.EmailConflict => Results.Conflict(new { error = "EmailAlreadyInUse" }),
         _ => Results.Problem()
     };
 }

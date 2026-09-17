@@ -176,6 +176,8 @@ User Management (Backoffice-only unless noted)
 ├── POST   /api/v1/users/grid-operators
 ├── GET    /api/v1/users                    (list)
 ├── GET    /api/v1/users/me                 (any authenticated user, own profile)
+├── PUT    /api/v1/users/{id}                (update email/username)
+├── DELETE /api/v1/users/{id}                (permanent delete)
 ├── PATCH  /api/v1/users/{id}/deactivate
 └── PATCH  /api/v1/users/{id}/reactivate
 ```
@@ -187,6 +189,10 @@ Exact request/response contracts and authorization policy names are defined in t
 ```
 Invited → (accept-invitation) → Active ⇄ (Backoffice deactivate/reactivate) → Deactivated
 ```
+
+`DELETE /api/v1/users/{id}` sits outside this state machine — it permanently removes the account
+(and its refresh tokens/invitations) rather than transitioning its status, and is blocked for the
+seeded super-admin account the same way deactivation is.
 
 Password reset is future work; the invitation-token mechanism (random token, hashed at rest, single-use, time-limited) is directly reusable via a `Purpose` discriminator when that flow is built.
 

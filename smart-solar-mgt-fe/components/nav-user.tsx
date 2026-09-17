@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ChevronsUpDownIcon,
   LogOutIcon,
@@ -40,8 +41,18 @@ export function NavUser({
   user: { email: string; username: string | null; role: Role }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
   const logout = useLogout()
   const displayName = user.username ?? user.email
+
+  // clearing the query cache alone doesn't reliably force already-mounted dashboard components
+  // to notice the session ended, so explicitly navigate away too (mirrors login-form.tsx's
+  // router.push on its own success); replace (not push) so the dead session isn't back-navigable
+  const handleLogout = () => {
+    logout.mutate(undefined, {
+      onSuccess: () => router.replace("/login"),
+    })
+  }
 
   return (
     <SidebarMenu>
@@ -96,7 +107,7 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onClick={() => logout.mutate()}
+              onClick={handleLogout}
               disabled={logout.isPending}
             >
               <LogOutIcon />

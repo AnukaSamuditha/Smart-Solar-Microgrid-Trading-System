@@ -43,16 +43,32 @@ public static class AuthEndpoints
         }
 
         var user = await userService.GetByEmailAsync(request.Email, cancellationToken);
-        if (user is null || user.PasswordHash is null || user.Status != UserStatus.Active ||
-            !passwordHasher.VerifyPassword(user.PasswordHash, request.Password))
+        if (user is null)
         {
-            return Results.Unauthorized();
+            return Results.Json(new { error = "InvalidCredentials" }, statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        // still Invited (no password set yet) — never reachable via VerifyPassword since there's no hash to check
+        if (user.PasswordHash is null)
+        {
+            return Results.Json(new { error = "ProfileIncomplete" }, statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        if (user.Status == UserStatus.Deactivated)
+        {
+            return Results.Json(new { error = "AccountDeactivated" }, statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        if (!passwordHasher.VerifyPassword(user.PasswordHash, request.Password))
+        {
+            return Results.Json(new { error = "InvalidCredentials" }, statusCode: StatusCodes.Status401Unauthorized);
         }
 
         var (accessToken, accessTokenExpiresAtUtc) = jwtTokenService.GenerateAccessToken(user);
         var (refreshToken, refreshTokenExpiresAtUtc) = await refreshTokenService.IssueAsync(user.Id, cancellationToken: cancellationToken);
 
         cookieAuthService.AppendAuthCookies(httpContext, accessToken, accessTokenExpiresAtUtc, refreshToken, refreshTokenExpiresAtUtc);
+        await userService.RecordLoginAsync(user.Id, cancellationToken);
 
         return Results.Ok(new LoginResponse(accessToken, accessTokenExpiresAtUtc, refreshToken, refreshTokenExpiresAtUtc, user.Role.ToString()));
     }
@@ -122,6 +138,7 @@ public static class AuthEndpoints
     private static async Task<IResult> AcceptInvitationAsync(
         AcceptInvitationRequest request,
         IInvitationService invitationService,
+        IUserService userService,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
@@ -133,6 +150,12 @@ public static class AuthEndpoints
         if (!result.Succeeded)
         {
             return Results.BadRequest(new { error = result.FailureReason?.ToString() ?? "InvalidToken" });
+        }
+
+        var user = await userService.GetByIdAsync(result.UserId!, cancellationToken);
+        if (user is not null)
+        {
+            await userService.SendPasswordSetConfirmationEmailAsync(user, cancellationToken);
         }
 
         return Results.NoContent();
