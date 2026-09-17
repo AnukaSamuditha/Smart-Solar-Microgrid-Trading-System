@@ -1,6 +1,82 @@
 @smart_solar_mgt_api_HostAddress = http://localhost:5011
+@accessToken = REPLACE_WITH_ACCESS_TOKEN
+@refreshToken = REPLACE_WITH_REFRESH_TOKEN
+@invitationToken = REPLACE_WITH_INVITATION_TOKEN
 
-GET {{smart_solar_mgt_api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Login (use the seeded super-admin credentials, or any Active account)
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "ChangeMe123!"
+}
+
+###
+
+### Refresh (rotates the presented refresh token)
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### Logout (revokes the presented refresh token)
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### Accept invitation (from the link emailed via MailHog, http://localhost:8025)
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/auth/accept-invitation
+Content-Type: application/json
+
+{
+  "token": "{{invitationToken}}",
+  "newPassword": "SetByInvitedUser123!"
+}
+
+###
+
+### Get own profile (any authenticated user)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/users/me
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Create a Backoffice account (Backoffice-only)
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/users/backoffice
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "new.backoffice@example.com",
+  "username": "New Backoffice User"
+}
+
+###
+
+### Create a Grid Operator account (Backoffice-only)
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/users/grid-operators
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "new.operator@example.com",
+  "username": "New Grid Operator"
+}
+
+###
+
+### List all users (Backoffice-only)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/users/
+Authorization: Bearer {{accessToken}}
 
 ###

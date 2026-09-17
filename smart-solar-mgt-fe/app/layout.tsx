@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Ubuntu, Geist_Mono } from "next/font/google";
+import QueryClientProviderCom from "@/providers/QueryClientProviderCom";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const ubuntu = Ubuntu({
+  variable: "--font-ubuntu",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -21,9 +24,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`dark ${ubuntu.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <QueryClientProviderCom>
+          <TooltipProvider>{children}</TooltipProvider>
+        </QueryClientProviderCom>
+      </body>
     </html>
   );
 }
