@@ -1,0 +1,11 @@
+## .NET build artifacts
+bin/
+obj/
+*.user
+
+## Local secrets / environment overrides — never commit real values
+.env
+
+## IDE
+.vs/
+.idea/

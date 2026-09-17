@@ -1,0 +1,28 @@
+# docker-compose.local.yml
+#
+# Local development stack only — not used in production (deployment target is Windows IIS,
+# no containers). Provides MongoDB and MailHog (SMTP dev inbox, UI at http://localhost:8025)
+# so the API can be run with `dotnet run` against a real local database and mail sink.
+#
+# Usage: docker compose -f docker-compose.local.yml up -d
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: smart-solar-mgt-mongo
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: smart-solar-mgt-mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+
+volumes:
+  mongo-data:
