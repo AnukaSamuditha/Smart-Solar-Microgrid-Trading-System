@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shape system -->
+    <dimen name="radius_card_main">20dp</dimen>
+    <dimen name="radius_card_small">16dp</dimen>
+    <dimen name="radius_button">14dp</dimen>
+    <dimen name="radius_input">14dp</dimen>
+    <dimen name="radius_bottom_nav">32dp</dimen>
+    <dimen name="radius_dialog">22dp</dimen>
+    <dimen name="radius_chip">8dp</dimen>
+
+    <!-- Spacing system -->
+    <dimen name="spacing_screen_horizontal">16dp</dimen>
+    <dimen name="spacing_section_gap">20dp</dimen>
+    <dimen name="spacing_card_gap">12dp</dimen>
+    <dimen name="spacing_card_padding">18dp</dimen>
+    <dimen name="spacing_small_gap">8dp</dimen>
+
+    <!-- Typography -->
+    <dimen name="text_screen_title">24sp</dimen>
+    <dimen name="text_section_title">18sp</dimen>
+    <dimen name="text_card_value">24sp</dimen>
+    <dimen name="text_card_title">13sp</dimen>
+    <dimen name="text_body">15sp</dimen>
+    <dimen name="text_metadata">12sp</dimen>
+
+    <dimen name="icon_size_small">32dp</dimen>
+    <dimen name="icon_size_medium">28dp</dimen>
+    <dimen name="avatar_size">56dp</dimen>
+
+    <dimen name="bottom_sheet_peek_height">150dp</dimen>
+
+    <!-- Height + bottom margin of the floating bottom-nav pill, now that content extends
+         edge-to-edge behind it - screens add this as extra bottom padding to their own root
+         so scrolled content clears the pill instead of disappearing under it. Generous on
+         purpose: the pill's actual reach from the true screen edge varies with the device's
+         gesture/nav-bar inset, and under-reserving means content visibly overlaps the pill. -->
+    <dimen name="floating_nav_clearance">120dp</dimen>
+</resources>

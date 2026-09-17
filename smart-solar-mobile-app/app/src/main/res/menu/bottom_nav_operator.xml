@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/operatorHomeFragment"
+        android:title="Home"
+        android:icon="@drawable/ic_nav_home" />
+    <item
+        android:id="@+id/operatorScanFragment"
+        android:title="Scan QR"
+        android:icon="@drawable/ic_scan_qr" />
+    <item
+        android:id="@+id/operatorBookingsFragment"
+        android:title="Bookings"
+        android:icon="@drawable/ic_nav_bookings" />
+    <item
+        android:id="@+id/operatorMapFragment"
+        android:title="Map"
+        android:icon="@drawable/ic_nav_map" />
+</menu>

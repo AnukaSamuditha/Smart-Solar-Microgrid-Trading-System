@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/solar_background"
+    android:fitsSystemWindows="true">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_screen_horizontal"
+        android:layout_marginTop="20dp"
+        android:text="All Reservations"
+        android:textAppearance="@style/TextAppearance.App.ScreenTitle" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_screen_horizontal"
+        android:layout_marginTop="16dp"
+        android:hint="Search by station or NIC"
+        app:startIconDrawable="@drawable/ic_search"
+        app:startIconTint="@color/solar_text_secondary">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etOpSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:textColor="@color/solar_text_primary" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayoutOpBookings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_small_gap"
+        app:tabMode="fixed">
+
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/tabOpCurrent"
+            android:text="Current" />
+
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/tabOpPending"
+            android:text="Pending" />
+
+        <com.google.android.material.tabs.TabItem
+            android:id="@+id/tabOpHistory"
+            android:text="History" />
+    </com.google.android.material.tabs.TabLayout>
+
+    <View style="@style/App.Divider" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvOpBookings"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingVertical="8dp"
+            android:clipToPadding="false" />
+
+        <ProgressBar
+            android:id="@+id/progressOpBookings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="48dp"
+            android:indeterminateTint="@color/solar_primary" />
+
+        <TextView
+            android:id="@+id/tvOpBookingsEmpty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textColor="@color/solar_text_secondary"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+</LinearLayout>

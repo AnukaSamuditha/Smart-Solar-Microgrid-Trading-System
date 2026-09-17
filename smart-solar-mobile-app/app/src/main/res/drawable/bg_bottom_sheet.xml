@@ -1,0 +1,7 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/solar_surface_elevated" />
+    <corners
+        android:topLeftRadius="@dimen/radius_dialog"
+        android:topRightRadius="@dimen/radius_dialog" />
+</shape>
