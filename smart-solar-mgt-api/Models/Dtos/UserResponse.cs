@@ -6,9 +6,23 @@ using smart_solar_mgt_api.Models.Entities;
 
 namespace smart_solar_mgt_api.Models.Dtos;
 
-public record UserResponse(string Id, string Email, string? Username, string Role, string Status)
+public record UserResponse(
+    string Id,
+    string Email,
+    string? Username,
+    string Role,
+    string Status,
+    DateTime CreatedAt,
+    DateTime? LastLoginAt)
 {
     // project a User entity onto its public response shape
     public static UserResponse FromEntity(User user) =>
-        new(user.Id, user.Email, user.Username, user.Role.ToString(), user.Status.ToString());
+        new(
+            user.Id,
+            user.Email,
+            user.Username,
+            user.Role.ToString(),
+            user.Status.ToString(),
+            user.CreatedAt,
+            user.LastLoginAt);
 }

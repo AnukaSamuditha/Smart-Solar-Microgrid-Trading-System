@@ -20,6 +20,13 @@ const ERROR_MESSAGES: Record<string, string> = {
   Expired: "This link has expired. Request a new invitation.",
   AlreadyUsed: "This link has already been used.",
   CsrfValidationFailed: "Your session has expired. Please refresh the page and try again.",
+  InvalidCredentials: "Invalid email or password.",
+  ProfileIncomplete:
+    "This account hasn't finished setup yet. Check your email for the invitation link, or ask an administrator to resend it.",
+  AccountDeactivated: "This account has been deactivated. Contact an administrator.",
+  EmailAlreadyInUse: "That email address is already in use.",
+  SeededAdminProtected: "This account is protected and can't be deactivated or deleted.",
+  ValidEmailRequired: "Enter a valid email address.",
 }
 
 const FALLBACK_MESSAGE = "Something went wrong. Please try again."

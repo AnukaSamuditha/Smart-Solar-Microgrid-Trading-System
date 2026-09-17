@@ -2,8 +2,11 @@
 @accessToken = REPLACE_WITH_ACCESS_TOKEN
 @refreshToken = REPLACE_WITH_REFRESH_TOKEN
 @invitationToken = REPLACE_WITH_INVITATION_TOKEN
+@userId = REPLACE_WITH_USER_ID
 
 ### Login (use the seeded super-admin credentials, or any Active account)
+# 401 error codes on failure: InvalidCredentials (unknown email or wrong password),
+# ProfileIncomplete (invited but hasn't accepted their invitation yet), AccountDeactivated
 POST {{smart_solar_mgt_api_HostAddress}}/api/v1/auth/login
 Content-Type: application/json
 
@@ -77,6 +80,36 @@ Content-Type: application/json
 
 ### List all users (Backoffice-only)
 GET {{smart_solar_mgt_api_HostAddress}}/api/v1/users/
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Update a user's email/username (Backoffice-only)
+PUT {{smart_solar_mgt_api_HostAddress}}/api/v1/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "updated.operator@example.com",
+  "username": "Updated Name"
+}
+
+###
+
+### Delete a user permanently (Backoffice-only)
+DELETE {{smart_solar_mgt_api_HostAddress}}/api/v1/users/{{userId}}
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Deactivate a user (Backoffice-only; blocked for the seeded super-admin)
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/users/{{userId}}/deactivate
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Reactivate a user (Backoffice-only)
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/users/{{userId}}/reactivate
 Authorization: Bearer {{accessToken}}
 
 ###

@@ -40,4 +40,6 @@ public class User
     public DateTime? UpdatedAt { get; set; }
 
     public string? UpdatedBy { get; set; }
+
+    public DateTime? LastLoginAt { get; set; }
 }

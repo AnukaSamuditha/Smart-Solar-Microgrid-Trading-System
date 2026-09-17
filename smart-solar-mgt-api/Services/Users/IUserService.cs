@@ -1,6 +1,6 @@
 // IUserService.cs
-// Purpose: Abstraction over user account queries and lifecycle management. Implemented by
-// UserService.
+// Purpose: Abstraction over user account queries, profile updates, and lifecycle management
+// (deactivate/reactivate/delete). Implemented by UserService.
 
 using smart_solar_mgt_api.Models.Entities;
 using smart_solar_mgt_api.Models.Enums;
@@ -25,11 +25,25 @@ public interface IUserService
     Task<UserActionResult> DeactivateAsync(string userId, string performedByUserId, CancellationToken cancellationToken = default);
 
     Task<UserActionResult> ReactivateAsync(string userId, string performedByUserId, CancellationToken cancellationToken = default);
+
+    Task<UserActionResult> UpdateAsync(
+        string userId,
+        string email,
+        string? username,
+        string performedByUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<UserActionResult> DeleteAsync(string userId, string performedByUserId, CancellationToken cancellationToken = default);
+
+    Task RecordLoginAsync(string userId, CancellationToken cancellationToken = default);
+
+    Task SendPasswordSetConfirmationEmailAsync(User user, CancellationToken cancellationToken = default);
 }
 
 public enum UserActionResult
 {
     Succeeded,
     NotFound,
-    Protected
+    Protected,
+    EmailConflict
 }
