@@ -1,7 +1,7 @@
 // MongoContext.cs
 // Purpose: Owns the MongoDB client/database handle and exposes typed collection accessors.
-// This is the only component in the auth feature that talks to MongoDB directly, consistent
-// with the FAT-service architecture in project-specification.md.
+// This is the only component in the API that talks to MongoDB directly, consistent with the
+// FAT-service architecture in project-specification.md.
 
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -26,6 +26,8 @@ public class MongoContext
     public IMongoCollection<RefreshToken> RefreshTokens => _database.GetCollection<RefreshToken>("RefreshTokens");
 
     public IMongoCollection<Invitation> Invitations => _database.GetCollection<Invitation>("Invitations");
+
+    public IMongoCollection<Prosumer> Prosumers => _database.GetCollection<Prosumer>("Prosumers");
 
     // create the unique and TTL indexes required by the auth feature; safe to call on every startup
     public async Task EnsureIndexesAsync(CancellationToken cancellationToken = default)
@@ -54,5 +56,11 @@ public class MongoContext
             Builders<Invitation>.IndexKeys.Ascending(i => i.ExpiresAt),
             new CreateIndexOptions { ExpireAfter = TimeSpan.Zero });
         await Invitations.Indexes.CreateOneAsync(invitationTtlIndex, cancellationToken: cancellationToken);
+
+        // Nic is already unique as the Prosumers collection's _id; Email needs its own unique index
+        var prosumerEmailIndex = new CreateIndexModel<Prosumer>(
+            Builders<Prosumer>.IndexKeys.Ascending(p => p.Email),
+            new CreateIndexOptions { Unique = true });
+        await Prosumers.Indexes.CreateOneAsync(prosumerEmailIndex, cancellationToken: cancellationToken);
     }
 }

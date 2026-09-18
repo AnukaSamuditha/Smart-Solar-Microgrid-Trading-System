@@ -24,9 +24,13 @@ const ERROR_MESSAGES: Record<string, string> = {
   ProfileIncomplete:
     "This account hasn't finished setup yet. Check your email for the invitation link, or ask an administrator to resend it.",
   AccountDeactivated: "This account has been deactivated. Contact an administrator.",
+  ProsumerMobileOnly: "Prosumer accounts sign in through the Wattex mobile app, not this dashboard.",
   EmailAlreadyInUse: "That email address is already in use.",
   SeededAdminProtected: "This account is protected and can't be deactivated or deleted.",
   ValidEmailRequired: "Enter a valid email address.",
+  InvalidNic: "Enter a valid NIC number.",
+  NicAlreadyInUse: "A prosumer with that NIC already exists.",
+  InvalidStatusFilter: "Invalid status filter.",
 }
 
 const FALLBACK_MESSAGE = "Something went wrong. Please try again."

@@ -1,7 +1,8 @@
 // InvitationService.cs
 // Purpose: Issues single-use, time-limited account-setup invitation tokens and atomically
-// consumes them to activate the invited user's account. See
-// docs/authentication-implementation-approach.md, section 4.
+// consumes them to activate the invited account — either a web app User or a Prosumer profile,
+// branching on Invitation.AccountType. See docs/authentication-implementation-approach.md,
+// section 4, and docs/prosumer-management-implementation-plan.md.
 
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -30,15 +31,17 @@ public class InvitationService : IInvitationService
 
     // generate a single-use invitation token and persist only its hash; the raw token is returned once, to be emailed
     public async Task<string> CreateInvitationAsync(
-        string userId,
+        string accountId,
         string createdByUserId,
+        InvitationAccountType accountType,
         CancellationToken cancellationToken = default)
     {
         var rawToken = SecureTokenGenerator.GenerateToken();
 
         var invitation = new Invitation
         {
-            UserId = userId,
+            AccountId = accountId,
+            AccountType = accountType,
             TokenHash = SecureTokenGenerator.Hash(rawToken),
             ExpiresAt = DateTime.UtcNow.AddHours(_invitationOptions.TokenLifetimeHours),
             CreatedAt = DateTime.UtcNow,
@@ -70,22 +73,35 @@ public class InvitationService : IInvitationService
                 .Find(i => i.TokenHash == tokenHash)
                 .AnyAsync(cancellationToken);
             var reason = alreadyUsed ? InvitationFailureReason.AlreadyUsed : InvitationFailureReason.NotFound;
-            return new InvitationAcceptResult(false, null, reason);
+            return new InvitationAcceptResult(false, null, null, reason);
         }
 
         if (invitation.ExpiresAt < DateTime.UtcNow)
         {
-            return new InvitationAcceptResult(false, null, InvitationFailureReason.Expired);
+            return new InvitationAcceptResult(false, null, null, InvitationFailureReason.Expired);
         }
 
         var passwordHash = _passwordHasher.HashPassword(newPassword);
-        var userFilter = Builders<User>.Filter.Eq(u => u.Id, invitation.UserId);
-        var userUpdate = Builders<User>.Update
-            .Set(u => u.PasswordHash, passwordHash)
-            .Set(u => u.Status, UserStatus.Active)
-            .Set(u => u.UpdatedAt, DateTime.UtcNow);
-        await _mongoContext.Users.UpdateOneAsync(userFilter, userUpdate, cancellationToken: cancellationToken);
 
-        return new InvitationAcceptResult(true, invitation.UserId, null);
+        if (invitation.AccountType == InvitationAccountType.Prosumer)
+        {
+            var prosumerFilter = Builders<Prosumer>.Filter.Eq(p => p.Nic, invitation.AccountId);
+            var prosumerUpdate = Builders<Prosumer>.Update
+                .Set(p => p.PasswordHash, passwordHash)
+                .Set(p => p.Status, ProsumerStatus.Active)
+                .Set(p => p.UpdatedAt, DateTime.UtcNow);
+            await _mongoContext.Prosumers.UpdateOneAsync(prosumerFilter, prosumerUpdate, cancellationToken: cancellationToken);
+        }
+        else
+        {
+            var userFilter = Builders<User>.Filter.Eq(u => u.Id, invitation.AccountId);
+            var userUpdate = Builders<User>.Update
+                .Set(u => u.PasswordHash, passwordHash)
+                .Set(u => u.Status, UserStatus.Active)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow);
+            await _mongoContext.Users.UpdateOneAsync(userFilter, userUpdate, cancellationToken: cancellationToken);
+        }
+
+        return new InvitationAcceptResult(true, invitation.AccountId, invitation.AccountType, null);
     }
 }

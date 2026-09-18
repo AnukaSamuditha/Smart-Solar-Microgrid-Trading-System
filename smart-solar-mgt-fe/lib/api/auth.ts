@@ -26,11 +26,19 @@ export interface AcceptInvitationPayload {
   newPassword: string
 }
 
+export interface AcceptInvitationResult {
+  accountType: "User" | "Prosumer"
+}
+
 // consumes a single-use invitation token (from an account-setup or admin-issued reset link)
-// and activates the account with the chosen password
-export function acceptInvitation(payload: AcceptInvitationPayload): Promise<void> {
-  return apiClient.post("/api/v1/auth/accept-invitation", {
+// and activates the account with the chosen password; accountType tells the caller whether to
+// point the user at the web dashboard (User) or the mobile app (Prosumer — see ResetPasswordForm)
+export async function acceptInvitation(
+  payload: AcceptInvitationPayload
+): Promise<AcceptInvitationResult> {
+  const { data } = await apiClient.post<AcceptInvitationResult>("/api/v1/auth/accept-invitation", {
     token: payload.token,
     newPassword: payload.newPassword,
   })
+  return data
 }

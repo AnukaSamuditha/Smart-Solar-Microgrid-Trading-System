@@ -55,7 +55,8 @@ public class UserService : IUserService
 
         await _mongoContext.Users.InsertOneAsync(user, cancellationToken: cancellationToken);
 
-        var rawToken = await _invitationService.CreateInvitationAsync(user.Id, createdByUserId, cancellationToken);
+        var rawToken = await _invitationService.CreateInvitationAsync(
+            user.Id, createdByUserId, InvitationAccountType.User, cancellationToken);
         await SendInvitationEmailAsync(user, rawToken, cancellationToken);
 
         return user;
@@ -143,7 +144,7 @@ public class UserService : IUserService
 
         await _mongoContext.Users.DeleteOneAsync(u => u.Id == userId, cancellationToken);
         await _mongoContext.RefreshTokens.DeleteManyAsync(t => t.UserId == userId, cancellationToken);
-        await _mongoContext.Invitations.DeleteManyAsync(i => i.UserId == userId, cancellationToken);
+        await _mongoContext.Invitations.DeleteManyAsync(i => i.AccountId == userId, cancellationToken);
 
         return UserActionResult.Succeeded;
     }

@@ -7,6 +7,7 @@
 using smart_solar_mgt_api.Models.Dtos;
 using smart_solar_mgt_api.Models.Enums;
 using smart_solar_mgt_api.Services.Auth;
+using smart_solar_mgt_api.Services.Prosumers;
 using smart_solar_mgt_api.Services.Users;
 
 namespace smart_solar_mgt_api.Endpoints;
@@ -31,6 +32,7 @@ public static class AuthEndpoints
         HttpContext httpContext,
         LoginRequest request,
         IUserService userService,
+        IProsumerService prosumerService,
         IPasswordHasherService passwordHasher,
         IJwtTokenService jwtTokenService,
         IRefreshTokenService refreshTokenService,
@@ -45,7 +47,13 @@ public static class AuthEndpoints
         var user = await userService.GetByEmailAsync(request.Email, cancellationToken);
         if (user is null)
         {
-            return Results.Json(new { error = "InvalidCredentials" }, statusCode: StatusCodes.Status401Unauthorized);
+            // the web dashboard is Backoffice/Grid Operator only (project-specification.md
+            // section 3); a Prosumer email gets a distinct "use the mobile app" message
+            // regardless of whether the presented password is actually correct for that
+            // profile — we never check it here, so this path leaks nothing about it
+            var prosumer = await prosumerService.GetByEmailAsync(request.Email, cancellationToken);
+            var errorCode = prosumer is not null ? "ProsumerMobileOnly" : "InvalidCredentials";
+            return Results.Json(new { error = errorCode }, statusCode: StatusCodes.Status401Unauthorized);
         }
 
         // still Invited (no password set yet) — never reachable via VerifyPassword since there's no hash to check
@@ -134,11 +142,13 @@ public static class AuthEndpoints
         return Results.NoContent();
     }
 
-    // consume a single-use invitation token and activate the invited user's account with their chosen password
+    // consume a single-use invitation token and activate the invited account (a User or a
+    // Prosumer, per result.AccountType) with the presenter's chosen password
     private static async Task<IResult> AcceptInvitationAsync(
         AcceptInvitationRequest request,
         IInvitationService invitationService,
         IUserService userService,
+        IProsumerService prosumerService,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
@@ -152,12 +162,23 @@ public static class AuthEndpoints
             return Results.BadRequest(new { error = result.FailureReason?.ToString() ?? "InvalidToken" });
         }
 
-        var user = await userService.GetByIdAsync(result.UserId!, cancellationToken);
-        if (user is not null)
+        if (result.AccountType == InvitationAccountType.Prosumer)
         {
-            await userService.SendPasswordSetConfirmationEmailAsync(user, cancellationToken);
+            var prosumer = await prosumerService.GetByNicAsync(result.AccountId!, cancellationToken);
+            if (prosumer is not null)
+            {
+                await prosumerService.SendPasswordSetConfirmationEmailAsync(prosumer, cancellationToken);
+            }
+        }
+        else
+        {
+            var user = await userService.GetByIdAsync(result.AccountId!, cancellationToken);
+            if (user is not null)
+            {
+                await userService.SendPasswordSetConfirmationEmailAsync(user, cancellationToken);
+            }
         }
 
-        return Results.NoContent();
+        return Results.Ok(new AcceptInvitationResponse(result.AccountType!.Value.ToString()));
     }
 }

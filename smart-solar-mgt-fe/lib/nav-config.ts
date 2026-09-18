@@ -42,12 +42,19 @@ export function canAccess(roles: Role[] | undefined, role: Role | undefined): bo
   return roles.includes(role)
 }
 
-// Backoffice manages prosumer registration, grid node registration/schedules,
-// and web app user accounts (see project-specification.md sections 3.1-3.3).
-// Grid Operators get operational tools only: reservations and battery slots.
+// Backoffice manages grid node registration/schedules and web app user accounts (see
+// project-specification.md sections 3.1, 3.3). Prosumer management is shared by both roles,
+// except reactivating a deactivated prosumer, which stays Backoffice-only (section 3.2) and is
+// enforced in the UI by ProsumerRowActions, not by hiding this nav entry. Grid Operators
+// otherwise get operational tools only: reservations and battery slots.
 export const mainNav: NavEntry[] = [
   { title: "Dashboard", href: "/", icon: HomeIcon },
-  { title: "Prosumers", href: "/prosumers", icon: UsersIcon, roles: ["Backoffice"] },
+  {
+    title: "Prosumers",
+    href: "/prosumers",
+    icon: UsersIcon,
+    roles: ["Backoffice", "GridOperator"],
+  },
   { title: "Reservations", href: "/reservations", icon: CalendarClockIcon },
   {
     title: "Grid Nodes",
