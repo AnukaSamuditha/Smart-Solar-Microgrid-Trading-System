@@ -3,10 +3,13 @@
 @refreshToken = REPLACE_WITH_REFRESH_TOKEN
 @invitationToken = REPLACE_WITH_INVITATION_TOKEN
 @userId = REPLACE_WITH_USER_ID
+@prosumerNic = 200012345678
 
 ### Login (use the seeded super-admin credentials, or any Active account)
 # 401 error codes on failure: InvalidCredentials (unknown email or wrong password),
-# ProfileIncomplete (invited but hasn't accepted their invitation yet), AccountDeactivated
+# ProfileIncomplete (invited but hasn't accepted their invitation yet), AccountDeactivated,
+# ProsumerMobileOnly (the email belongs to a Prosumer profile — the web dashboard is
+# Backoffice/Grid Operator only; returned regardless of whether the password is correct)
 POST {{smart_solar_mgt_api_HostAddress}}/api/v1/auth/login
 Content-Type: application/json
 
@@ -38,6 +41,8 @@ Content-Type: application/json
 ###
 
 ### Accept invitation (from the link emailed via MailHog, http://localhost:8025)
+# 200 response body: { "accountType": "User" | "Prosumer" } — the frontend uses this to decide
+# whether to show "sign in to the dashboard" or "sign in via the mobile app" next
 POST {{smart_solar_mgt_api_HostAddress}}/api/v1/auth/accept-invitation
 Content-Type: application/json
 
@@ -110,6 +115,53 @@ Authorization: Bearer {{accessToken}}
 
 ### Reactivate a user (Backoffice-only)
 PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/users/{{userId}}/reactivate
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Create a prosumer profile (Backoffice or Grid Operator); sends a setup invitation email
+# rather than accepting a password directly — accept it via POST /api/v1/auth/accept-invitation
+# (same endpoint used for Backoffice/Grid Operator invitations), using the token from the email
+# 400 error codes: InvalidNic, ValidEmailRequired
+# 409 error codes: NicAlreadyInUse, EmailAlreadyInUse
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nic": "{{prosumerNic}}",
+  "email": "new.prosumer@example.com",
+  "fullName": "New Prosumer"
+}
+
+###
+
+### List prosumers with backend search, status filter, and pagination (Backoffice or Grid Operator)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers?search=prosumer&status=Active&page=1&pageSize=20&sortBy=CreatedAt&sortDir=desc
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Update a prosumer's email/full name (Backoffice or Grid Operator); NIC is immutable
+PUT {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers/{{prosumerNic}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "updated.prosumer@example.com",
+  "fullName": "Updated Name"
+}
+
+###
+
+### Deactivate a prosumer profile (Backoffice or Grid Operator)
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers/{{prosumerNic}}/deactivate
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Reactivate a prosumer profile (Backoffice-only; Grid Operators get 403)
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers/{{prosumerNic}}/reactivate
 Authorization: Bearer {{accessToken}}
 
 ###

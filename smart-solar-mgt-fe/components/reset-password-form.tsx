@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { cn } from "cn"
-import { CheckCircle2Icon, EyeIcon, EyeOffIcon } from "lucide-react"
+import { CheckCircle2Icon, EyeIcon, EyeOffIcon, SmartphoneIcon } from "lucide-react"
 import { Controller, useForm } from "react-hook-form"
 
 import { Button } from "@/components/ui/button"
@@ -44,6 +44,24 @@ export function ResetPasswordForm({
   })
 
   if (acceptInvitation.isSuccess) {
+    // Prosumers have no web dashboard login (Backoffice/Grid Operator only, per
+    // project-specification.md section 3) — point them at the mobile app instead of a
+    // "sign in" link that would only reject them with ProsumerMobileOnly
+    if (acceptInvitation.data.accountType === "Prosumer") {
+      return (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-muted/30 px-6 py-8 text-center">
+          <SmartphoneIcon className="size-8 text-primary" />
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-medium">Thank you — your account is ready</p>
+            <p className="text-sm text-muted-foreground">
+              Sign in with your NIC and new password using the Wattex mobile app to manage your
+              energy reservations.
+            </p>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-muted/30 px-6 py-8 text-center">
         <CheckCircle2Icon className="size-8 text-primary" />

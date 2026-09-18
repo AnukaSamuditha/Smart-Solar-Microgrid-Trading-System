@@ -1,6 +1,6 @@
 // Program.cs
 // Purpose: Composition root for the Smart Solar Microgrid Trading System Web API. Wires up
-// configuration, MongoDB, JWT authentication/authorization, email, and the auth/user
+// configuration, MongoDB, JWT authentication/authorization, email, and the auth/user/prosumer
 // endpoints. Also supports a manual `dotnet run -- seed-admin` command that creates the
 // initial Backoffice super-admin account without starting the web host — see
 // Services/Seed/SuperAdminSeeder.cs and docs/authentication-implementation-approach.md.
@@ -15,6 +15,7 @@ using smart_solar_mgt_api.Data;
 using smart_solar_mgt_api.Endpoints;
 using smart_solar_mgt_api.Services.Auth;
 using smart_solar_mgt_api.Services.Email;
+using smart_solar_mgt_api.Services.Prosumers;
 using smart_solar_mgt_api.Services.Seed;
 using smart_solar_mgt_api.Services.Users;
 
@@ -38,6 +39,7 @@ builder.Services.AddSingleton<ICookieAuthService, CookieAuthService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IInvitationService, InvitationService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IProsumerService, ProsumerService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<SuperAdminSeeder>();
 
@@ -111,7 +113,8 @@ builder.Services
     });
 
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(RoleNames.Backoffice, policy => policy.RequireRole(RoleNames.Backoffice));
+    .AddPolicy(RoleNames.Backoffice, policy => policy.RequireRole(RoleNames.Backoffice))
+    .AddPolicy("ProsumerManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator));
 
 var app = builder.Build();
 
@@ -146,6 +149,7 @@ app.UseAuthorization();
 
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
+app.MapProsumerEndpoints();
 
 app.Run();
 
