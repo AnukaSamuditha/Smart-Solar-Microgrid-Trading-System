@@ -5,6 +5,7 @@
 @userId = REPLACE_WITH_USER_ID
 @prosumerNic = 200012345678
 @nodeId = REPLACE_WITH_NODE_ID
+@reservationId = REPLACE_WITH_RESERVATION_ID
 
 ### Login (use the seeded super-admin credentials, or any Active account)
 # 401 error codes on failure: InvalidCredentials (unknown email or wrong password),
@@ -228,8 +229,8 @@ Content-Type: application/json
 ###
 
 ### Deactivate a microgrid node (Backoffice-only)
-# 409 error codes: ActiveReservationsExist (blocked while active reservations exist against the node —
-# always succeeds today since Reservation Management isn't built yet, see StubReservationLookupService)
+# 409 error codes: ActiveReservationsExist (blocked while a Confirmed, not-yet-elapsed reservation
+# exists against the node — see ReservationLookupService)
 PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/{{nodeId}}/deactivate
 Authorization: Bearer {{accessToken}}
 
@@ -237,6 +238,63 @@ Authorization: Bearer {{accessToken}}
 
 ### Reactivate a microgrid node (Backoffice-only)
 PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/{{nodeId}}/reactivate
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Create an energy slot reservation (Backoffice or Grid Operator; staff-assisted booking on the
+# prosumer's behalf — there is no prosumer authentication in this codebase yet). startTime must be
+# in the future and no more than 7 days out (spec section 3.4); the target slot must have no other
+# Confirmed, not-yet-elapsed reservation against it.
+# 400 error codes: InvalidNic, NodeIdRequired, SlotIdRequired, StartTimeMustBeBeforeEndTime,
+# ReservationMustBeInFuture, ReservationMustBeWithinSevenDays
+# 404 error codes: ProsumerNotFound, NodeNotFound, SlotNotFound
+# 409 error codes: ProsumerDeactivated, NodeDeactivated, SlotNotAvailable
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "prosumerNic": "{{prosumerNic}}",
+  "nodeId": "{{nodeId}}",
+  "slotId": "1",
+  "startTime": "2026-09-22T09:00:00Z",
+  "endTime": "2026-09-22T11:00:00Z"
+}
+
+###
+
+### List reservations with backend filters and pagination (Backoffice or Grid Operator)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations?status=Confirmed&page=1&pageSize=20&sortBy=StartTime&sortDir=asc
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Get a single reservation (Backoffice or Grid Operator)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/{{reservationId}}
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Reschedule a reservation's time window (Backoffice or Grid Operator); same node/slot are kept.
+# Requires at least 12 hours' notice against the reservation's current (pre-update) start time.
+# 400 error codes: StartTimeMustBeBeforeEndTime, ReservationMustBeInFuture, ReservationMustBeWithinSevenDays
+# 409 error codes: AlreadyCancelled, AlreadyStarted, InsufficientNotice
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/{{reservationId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "startTime": "2026-09-23T09:00:00Z",
+  "endTime": "2026-09-23T11:00:00Z"
+}
+
+###
+
+### Cancel a reservation (Backoffice or Grid Operator); requires at least 12 hours' notice against
+# the reservation's current start time
+# 409 error codes: AlreadyCancelled, AlreadyStarted, InsufficientNotice
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/{{reservationId}}/cancel
 Authorization: Bearer {{accessToken}}
 
 ###

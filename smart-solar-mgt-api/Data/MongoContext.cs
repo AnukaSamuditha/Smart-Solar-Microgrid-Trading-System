@@ -31,6 +31,8 @@ public class MongoContext
 
     public IMongoCollection<MicrogridNode> MicrogridNodes => _database.GetCollection<MicrogridNode>("MicrogridNodes");
 
+    public IMongoCollection<Reservation> Reservations => _database.GetCollection<Reservation>("Reservations");
+
     // create the unique and TTL indexes required by the auth feature; safe to call on every startup
     public async Task EnsureIndexesAsync(CancellationToken cancellationToken = default)
     {
@@ -70,5 +72,20 @@ public class MongoContext
         var nodeLocationIndex = new CreateIndexModel<MicrogridNode>(
             Builders<MicrogridNode>.IndexKeys.Geo2DSphere(n => n.Location));
         await MicrogridNodes.Indexes.CreateOneAsync(nodeLocationIndex, cancellationToken: cancellationToken);
+
+        // serves IReservationLookupService.HasActiveReservationsAsync (NodeId + Status + EndTime)
+        var reservationNodeStatusIndex = new CreateIndexModel<Reservation>(
+            Builders<Reservation>.IndexKeys.Ascending(r => r.NodeId).Ascending(r => r.Status).Ascending(r => r.EndTime));
+        await Reservations.Indexes.CreateOneAsync(reservationNodeStatusIndex, cancellationToken: cancellationToken);
+
+        // serves ReservationService's create-time slot-conflict gate check (NodeId + SlotId + Status + EndTime)
+        var reservationSlotConflictIndex = new CreateIndexModel<Reservation>(
+            Builders<Reservation>.IndexKeys.Ascending(r => r.NodeId).Ascending(r => r.SlotId).Ascending(r => r.Status).Ascending(r => r.EndTime));
+        await Reservations.Indexes.CreateOneAsync(reservationSlotConflictIndex, cancellationToken: cancellationToken);
+
+        // serves the reservation list endpoint's prosumerNic filter
+        var reservationProsumerIndex = new CreateIndexModel<Reservation>(
+            Builders<Reservation>.IndexKeys.Ascending(r => r.ProsumerNic));
+        await Reservations.Indexes.CreateOneAsync(reservationProsumerIndex, cancellationToken: cancellationToken);
     }
 }
