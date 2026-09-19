@@ -31,6 +31,16 @@ const ERROR_MESSAGES: Record<string, string> = {
   InvalidNic: "Enter a valid NIC number.",
   NicAlreadyInUse: "A prosumer with that NIC already exists.",
   InvalidStatusFilter: "Invalid status filter.",
+  NameRequired: "Enter a name for this node.",
+  InvalidLatitude: "Latitude must be between -90 and 90.",
+  InvalidLongitude: "Longitude must be between -180 and 180.",
+  CapacityMustBePositive: "Capacity must be greater than zero.",
+  BatterySlotCountMustNotBeNegative: "Battery slot count can't be negative.",
+  OperatingStartTimeMustBeBeforeEndTime: "Operating start time must be before the end time.",
+  OpenAndCloseTimeRequiredWhenNotClosed: "Enter an open and close time for every open day, or mark it as closed.",
+  OpenTimeMustBeBeforeCloseTime: "Open time must be before close time.",
+  SlotNotFound: "That battery slot no longer exists.",
+  ActiveReservationsExist: "This node can't be deactivated while it has active energy reservations.",
 }
 
 const FALLBACK_MESSAGE = "Something went wrong. Please try again."
