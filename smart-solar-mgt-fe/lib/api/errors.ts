@@ -41,12 +41,33 @@ const ERROR_MESSAGES: Record<string, string> = {
   OpenTimeMustBeBeforeCloseTime: "Open time must be before close time.",
   SlotNotFound: "That battery slot no longer exists.",
   ActiveReservationsExist: "This node can't be deactivated while it has active energy reservations.",
+  NodeIdRequired: "Select a grid node.",
+  SlotIdRequired: "Select a battery slot.",
+  StartTimeMustBeBeforeEndTime: "Start time must be before the end time.",
+  ReservationMustBeInFuture: "Start time must be in the future.",
+  ReservationMustBeWithinSevenDays: "Reservations must be scheduled within 7 days.",
+  ProsumerNotFound: "No prosumer was found with that NIC.",
+  ProsumerDeactivated: "This prosumer's profile is deactivated and can't be booked.",
+  NodeNotFound: "That grid node no longer exists.",
+  NodeDeactivated: "This grid node is deactivated and can't accept new reservations.",
+  SlotNotAvailable: "That battery slot already has an active reservation.",
+  AlreadyCancelled: "This reservation has already been cancelled.",
+  AlreadyStarted: "This reservation's time slot has already started and can no longer be changed.",
+  InsufficientNotice: "Changes and cancellations require at least 12 hours' notice.",
 }
 
 const FALLBACK_MESSAGE = "Something went wrong. Please try again."
 
-// normalize an axios (or unknown) error into a plain ApiError with a user-facing message
+// normalize an axios (or unknown) error into a plain ApiError with a user-facing message. Passed
+// through unchanged if it's already an ApiError — apiClient's response interceptor
+// (providers/api-client.ts) already runs every rejected request through this function, so a
+// dialog's own onError handler calling toApiError(error) again must not re-wrap and lose the
+// original status/code/message.
 export function toApiError(error: unknown): ApiError {
+  if (error instanceof ApiError) {
+    return error
+  }
+
   if (isAxiosError(error)) {
     const status = error.response?.status ?? 0
     const code = (error.response?.data as { error?: string } | undefined)?.error

@@ -49,9 +49,8 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IInvitationService, InvitationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProsumerService, ProsumerService>();
-// stubbed until Energy Slot Reservation Management (spec section 3.4) is built — see
-// StubReservationLookupService
-builder.Services.AddScoped<IReservationLookupService, StubReservationLookupService>();
+builder.Services.AddScoped<IReservationLookupService, ReservationLookupService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IMicrogridNodeService, MicrogridNodeService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<SuperAdminSeeder>();
@@ -128,7 +127,8 @@ builder.Services
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(RoleNames.Backoffice, policy => policy.RequireRole(RoleNames.Backoffice))
     .AddPolicy("ProsumerManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator))
-    .AddPolicy("NodeBatterySlotManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator));
+    .AddPolicy("NodeBatterySlotManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator))
+    .AddPolicy("ReservationManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator));
 
 var app = builder.Build();
 
@@ -165,6 +165,7 @@ app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapProsumerEndpoints();
 app.MapMicrogridNodeEndpoints();
+app.MapReservationEndpoints();
 
 app.Run();
 
