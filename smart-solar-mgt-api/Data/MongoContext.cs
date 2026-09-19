@@ -29,6 +29,8 @@ public class MongoContext
 
     public IMongoCollection<Prosumer> Prosumers => _database.GetCollection<Prosumer>("Prosumers");
 
+    public IMongoCollection<MicrogridNode> MicrogridNodes => _database.GetCollection<MicrogridNode>("MicrogridNodes");
+
     // create the unique and TTL indexes required by the auth feature; safe to call on every startup
     public async Task EnsureIndexesAsync(CancellationToken cancellationToken = default)
     {
@@ -62,5 +64,11 @@ public class MongoContext
             Builders<Prosumer>.IndexKeys.Ascending(p => p.Email),
             new CreateIndexOptions { Unique = true });
         await Prosumers.Indexes.CreateOneAsync(prosumerEmailIndex, cancellationToken: cancellationToken);
+
+        // 2dsphere index on Location enables $near/$geoWithin queries for a future "nearby
+        // nodes" feature (mobile app spec section 4.3) with no migration
+        var nodeLocationIndex = new CreateIndexModel<MicrogridNode>(
+            Builders<MicrogridNode>.IndexKeys.Geo2DSphere(n => n.Location));
+        await MicrogridNodes.Indexes.CreateOneAsync(nodeLocationIndex, cancellationToken: cancellationToken);
     }
 }

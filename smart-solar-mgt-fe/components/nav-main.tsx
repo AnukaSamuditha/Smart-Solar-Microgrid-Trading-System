@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import { ChevronRightIcon } from "lucide-react"
 
@@ -22,8 +22,31 @@ import {
 import { canAccess, isNavGroup, type NavEntry, type NavGroup, type Role } from "@/lib/nav-config"
 import { cn } from "@/lib/utils"
 
-function isLinkActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`)
+// scores how well a nav href matches the current pathname: an exact match always outranks a
+// prefix match, so a nested route (e.g. /grid-nodes/schedules) never also lights up a sibling
+// nav entry (e.g. /grid-nodes) just because one href happens to be a string-prefix of the other
+function matchScore(pathname: string, href: string): number {
+  if (pathname === href) return href.length * 2 + 1
+  if (href !== "/" && pathname.startsWith(`${href}/`)) return href.length
+  return -1
+}
+
+function flattenHrefs(entries: NavEntry[]): string[] {
+  return entries.flatMap((entry) => (isNavGroup(entry) ? entry.items.map((item) => item.href) : [entry.href]))
+}
+
+// the single most specific nav href matching the current pathname (or undefined if none match)
+function getActiveHref(pathname: string, entries: NavEntry[]): string | undefined {
+  let best: string | undefined
+  let bestScore = -1
+  for (const href of flattenHrefs(entries)) {
+    const score = matchScore(pathname, href)
+    if (score > bestScore) {
+      bestScore = score
+      best = href
+    }
+  }
+  return best
 }
 
 // the current-route pill: a visible border plus a touch more vertical padding
@@ -31,8 +54,8 @@ function isLinkActive(pathname: string, href: string) {
 const activeMain = "border border-sidebar-border h-auto py-2.5"
 const activeSub = "border border-sidebar-border h-auto py-2"
 
-function NavGroupItem({ entry, pathname }: { entry: NavGroup; pathname: string }) {
-  const containsActive = entry.items.some((item) => isLinkActive(pathname, item.href))
+function NavGroupItem({ entry, activeHref }: { entry: NavGroup; activeHref: string | undefined }) {
+  const containsActive = entry.items.some((item) => item.href === activeHref)
   // uncontrolled `defaultOpen` can't react to route changes without Base UI warning
   // about mutating it post-init, so this stays controlled. State is adjusted during
   // render (React's recommended pattern for state derived from a changing prop)
@@ -63,7 +86,7 @@ function NavGroupItem({ entry, pathname }: { entry: NavGroup; pathname: string }
       <CollapsibleContent>
         <SidebarMenuSub className="gap-0 border-l-0 px-0">
           {entry.items.map((item, index) => {
-            const isActive = isLinkActive(pathname, item.href)
+            const isActive = item.href === activeHref
             const isLast = index === entry.items.length - 1
 
             return (
@@ -108,6 +131,7 @@ export function NavMain({
   pathname: string
 }) {
   const visible = entries.filter((entry) => canAccess(entry.roles, role))
+  const activeHref = useMemo(() => getActiveHref(pathname, entries), [pathname, entries])
 
   if (!visible.length) {
     return null
@@ -119,14 +143,14 @@ export function NavMain({
       <SidebarMenu className="gap-2">
         {visible.map((entry) =>
           isNavGroup(entry) ? (
-            <NavGroupItem key={entry.title} entry={entry} pathname={pathname} />
+            <NavGroupItem key={entry.title} entry={entry} activeHref={activeHref} />
           ) : (
             <SidebarMenuItem key={entry.href}>
               <SidebarMenuButton
                 tooltip={entry.title}
-                isActive={isLinkActive(pathname, entry.href)}
+                isActive={entry.href === activeHref}
                 render={<Link href={entry.href} />}
-                className={cn(isLinkActive(pathname, entry.href) && activeMain)}
+                className={cn(entry.href === activeHref && activeMain)}
               >
                 <entry.icon />
                 <span>{entry.title}</span>

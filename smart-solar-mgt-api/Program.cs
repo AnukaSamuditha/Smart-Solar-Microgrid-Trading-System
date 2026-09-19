@@ -1,11 +1,12 @@
 // Program.cs
 // Purpose: Composition root for the Smart Solar Microgrid Trading System Web API. Wires up
-// configuration, MongoDB, JWT authentication/authorization, email, and the auth/user/prosumer
-// endpoints. Also supports a manual `dotnet run -- seed-admin` command that creates the
-// initial Backoffice super-admin account without starting the web host — see
+// configuration, MongoDB, JWT authentication/authorization, email, and the
+// auth/user/prosumer/node endpoints. Also supports a manual `dotnet run -- seed-admin` command
+// that creates the initial Backoffice super-admin account without starting the web host — see
 // Services/Seed/SuperAdminSeeder.cs and docs/authentication-implementation-approach.md.
 
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -15,7 +16,9 @@ using smart_solar_mgt_api.Data;
 using smart_solar_mgt_api.Endpoints;
 using smart_solar_mgt_api.Services.Auth;
 using smart_solar_mgt_api.Services.Email;
+using smart_solar_mgt_api.Services.Nodes;
 using smart_solar_mgt_api.Services.Prosumers;
+using smart_solar_mgt_api.Services.Reservations;
 using smart_solar_mgt_api.Services.Seed;
 using smart_solar_mgt_api.Services.Users;
 
@@ -30,6 +33,12 @@ builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection(SeedOpt
 builder.Services.Configure<InvitationOptions>(builder.Configuration.GetSection(InvitationOptions.SectionName));
 builder.Services.Configure<CorsOptions>(builder.Configuration.GetSection(CorsOptions.SectionName));
 
+// serialize/deserialize enum-typed request/response fields (e.g. UpdateBatterySlotStatusRequest.Status,
+// ScheduleEntryDto.DayOfWeek) as their string names rather than the default numeric values — the
+// first enum-typed JSON body fields in this codebase, introduced by Node Management
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 // the MongoDB client/database handle is thread-safe and long-lived, so it is registered once
 builder.Services.AddSingleton<MongoContext>();
 
@@ -40,6 +49,10 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IInvitationService, InvitationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProsumerService, ProsumerService>();
+// stubbed until Energy Slot Reservation Management (spec section 3.4) is built — see
+// StubReservationLookupService
+builder.Services.AddScoped<IReservationLookupService, StubReservationLookupService>();
+builder.Services.AddScoped<IMicrogridNodeService, MicrogridNodeService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<SuperAdminSeeder>();
 
@@ -114,7 +127,8 @@ builder.Services
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(RoleNames.Backoffice, policy => policy.RequireRole(RoleNames.Backoffice))
-    .AddPolicy("ProsumerManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator));
+    .AddPolicy("ProsumerManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator))
+    .AddPolicy("NodeBatterySlotManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator));
 
 var app = builder.Build();
 
@@ -150,6 +164,7 @@ app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapProsumerEndpoints();
+app.MapMicrogridNodeEndpoints();
 
 app.Run();
 

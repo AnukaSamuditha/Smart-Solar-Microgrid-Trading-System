@@ -4,6 +4,7 @@
 @invitationToken = REPLACE_WITH_INVITATION_TOKEN
 @userId = REPLACE_WITH_USER_ID
 @prosumerNic = 200012345678
+@nodeId = REPLACE_WITH_NODE_ID
 
 ### Login (use the seeded super-admin credentials, or any Active account)
 # 401 error codes on failure: InvalidCredentials (unknown email or wrong password),
@@ -162,6 +163,80 @@ Authorization: Bearer {{accessToken}}
 
 ### Reactivate a prosumer profile (Backoffice-only; Grid Operators get 403)
 PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers/{{prosumerNic}}/reactivate
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Create a microgrid node (Backoffice-only). operatingStartTime/operatingEndTime seed the same
+# daily window on every day of the initial weekly schedule (refine per-day later via PATCH
+# /{id}/schedule)
+# 400 error codes: NameRequired, InvalidLatitude, InvalidLongitude, CapacityMustBePositive,
+# BatterySlotCountMustNotBeNegative, OperatingStartTimeMustBeBeforeEndTime
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Colombo Hub 1",
+  "latitude": 6.9271,
+  "longitude": 79.8612,
+  "capacityKw": 50.5,
+  "batterySlotCount": 5,
+  "operatingStartTime": "06:00:00",
+  "operatingEndTime": "18:00:00"
+}
+
+###
+
+### List microgrid nodes with backend search, status filter, and pagination (Backoffice or Grid Operator)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes?search=hub&status=Active&page=1&pageSize=20&sortBy=CreatedAt&sortDir=desc
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Get a single microgrid node (Backoffice or Grid Operator)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/{{nodeId}}
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Update a node's weekly operating-hours schedule (Backoffice-only)
+# 400 error codes: OpenAndCloseTimeRequiredWhenNotClosed, OpenTimeMustBeBeforeCloseTime
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/{{nodeId}}/schedule
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "schedule": [
+    { "dayOfWeek": "Monday", "openTime": "06:00:00", "closeTime": "18:00:00", "isClosed": false },
+    { "dayOfWeek": "Sunday", "openTime": null, "closeTime": null, "isClosed": true }
+  ]
+}
+
+###
+
+### Update a battery slot's status (Backoffice or Grid Operator)
+# 404 error codes: SlotNotFound
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/{{nodeId}}/battery-slots/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "Occupied"
+}
+
+###
+
+### Deactivate a microgrid node (Backoffice-only)
+# 409 error codes: ActiveReservationsExist (blocked while active reservations exist against the node —
+# always succeeds today since Reservation Management isn't built yet, see StubReservationLookupService)
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/{{nodeId}}/deactivate
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Reactivate a microgrid node (Backoffice-only)
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/{{nodeId}}/reactivate
 Authorization: Bearer {{accessToken}}
 
 ###
