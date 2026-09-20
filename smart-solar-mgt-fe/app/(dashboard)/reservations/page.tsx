@@ -123,8 +123,11 @@ export default function ReservationsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All statuses</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Confirmed">Confirmed</SelectItem>
+                <SelectItem value="Rejected">Rejected</SelectItem>
                 <SelectItem value="Cancelled">Cancelled</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
               </SelectContent>
             </Select>
             <Input

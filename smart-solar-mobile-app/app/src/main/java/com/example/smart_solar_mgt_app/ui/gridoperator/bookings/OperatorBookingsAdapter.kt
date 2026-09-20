@@ -47,6 +47,7 @@ class OperatorBookingsAdapter : ListAdapter<BookingListItem, OperatorBookingsAda
             BookingStatus.APPROVED -> Color.parseColor("#2E7D32")
             BookingStatus.COMPLETED -> Color.parseColor("#1565C0")
             BookingStatus.CANCELLED -> Color.parseColor("#C62828")
+            BookingStatus.REJECTED -> Color.parseColor("#E65100")
             BookingStatus.EXPIRED -> Color.parseColor("#757575")
         }
     }

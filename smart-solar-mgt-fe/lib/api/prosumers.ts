@@ -1,12 +1,21 @@
 import { apiClient } from "@/providers/api-client"
 
-export type ProsumerStatus = "Invited" | "Active" | "Deactivated"
+export type ProsumerStatus = "Invited" | "Active" | "Deactivated" | "PendingApproval" | "Rejected"
+
+export type ProsumerRegistrationSource = "StaffInvited" | "SelfRegistered"
 
 export interface ProsumerListItem {
   nic: string
   email: string
   fullName: string | null
+  // set only for a SelfRegistered profile (see ProsumerService.RegisterAsync) - null for the
+  // staff-invited path, which never collects them
+  phone: string | null
+  address: string | null
   status: ProsumerStatus
+  registrationSource: ProsumerRegistrationSource
+  // set only when status is Rejected
+  rejectionReason: string | null
   createdAt: string
   updatedAt: string | null
 }
@@ -73,4 +82,20 @@ export async function deactivateProsumer(nic: string): Promise<void> {
 // restores a deactivated profile (Backoffice-only; Grid Operators get a 403)
 export async function reactivateProsumer(nic: string): Promise<void> {
   await apiClient.patch(`/api/v1/prosumers/${nic}/reactivate`)
+}
+
+// approves a self-registered (PendingApproval) profile: moves it to Invited and emails the
+// prosumer a code to set their password in the mobile app (Backoffice or Grid Operator)
+export async function approveProsumer(nic: string): Promise<void> {
+  await apiClient.patch(`/api/v1/prosumers/${nic}/approve`)
+}
+
+export interface DenyProsumerPayload {
+  nic: string
+  reason?: string
+}
+
+// denies a self-registered (PendingApproval) profile, terminally (Backoffice or Grid Operator)
+export async function denyProsumer({ nic, reason }: DenyProsumerPayload): Promise<void> {
+  await apiClient.patch(`/api/v1/prosumers/${nic}/deny`, { reason })
 }

@@ -65,6 +65,9 @@ class LoginActivity : AppCompatActivity() {
             }
             is LoginUiState.FormError -> Toast.makeText(this, state.message, Toast.LENGTH_LONG).show()
             is LoginUiState.Success -> RoleRouter.routeTo(this, state.role)
+            LoginUiState.PendingApproval -> startActivity(Intent(this, PendingActivationActivity::class.java))
+            LoginUiState.AccountCreationDenied -> startActivity(Intent(this, AccountDeniedActivity::class.java))
+            LoginUiState.PasswordNotSet -> startActivity(Intent(this, ResetPasswordActivity::class.java))
             LoginUiState.Idle, LoginUiState.Loading -> Unit
         }
     }

@@ -6,20 +6,20 @@ import com.example.smart_solar_mgt_app.domain.model.Transaction
 
 /**
  * Where TransactionRepositoryImpl actually gets its "is this pass valid / mark it complete"
- * answers from - local SQLite + on-device HMAC today ([LocalTransactionVerificationSource]), the
- * C# Web API once cross-device server verification ships (a future RemoteTransactionVerificationSource).
+ * answers from - originally on-device HMAC + local SQLite, now an authoritative online round-trip
+ * to the C# Web API ([RemoteTransactionVerificationSource]), matching this interface's
+ * always-intended cross-device server verification design.
  *
  * TransactionRepositoryImpl only does the Android-session concerns (role guard, resolving the
  * acting operator's NIC) and delegates the actual validity/completion decision here - neither
- * implementation of this interface should need to know SecurityManager exists. Swapping which
- * implementation is wired in ServiceLocator is the only change needed to move from local to
- * remote verification; OperatorScanFragment and TransactionRepositoryImpl's public API never change.
+ * implementation of this interface should need to know SecurityManager exists. This is the one
+ * seam that had to change to move from local to remote verification; OperatorScanFragment and
+ * TransactionRepositoryImpl's public API never needed to.
  */
 interface TransactionVerificationSource {
     /**
      * Given the raw scanned string and the acting operator's NIC, decide validity and return
-     * display-ready details. How "valid" is decided is entirely up to the implementation - local
-     * HMAC+expiry check today, an HTTPS round-trip to the server tomorrow. Read-only - no writes.
+     * display-ready details. Read-only - no writes.
      */
     fun verify(rawToken: String, operatorNic: String): AppResult<EnergyTransferVerification>
 

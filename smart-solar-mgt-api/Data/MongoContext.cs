@@ -33,6 +33,8 @@ public class MongoContext
 
     public IMongoCollection<Reservation> Reservations => _database.GetCollection<Reservation>("Reservations");
 
+    public IMongoCollection<Transaction> Transactions => _database.GetCollection<Transaction>("Transactions");
+
     // create the unique and TTL indexes required by the auth feature; safe to call on every startup
     public async Task EnsureIndexesAsync(CancellationToken cancellationToken = default)
     {
@@ -102,5 +104,13 @@ public class MongoContext
         var prosumerCreatedAtIndex = new CreateIndexModel<Prosumer>(
             Builders<Prosumer>.IndexKeys.Descending(p => p.CreatedAt));
         await Prosumers.Indexes.CreateOneAsync(prosumerCreatedAtIndex, cancellationToken: cancellationToken);
+
+        // serves TransactionService.ScanAsync/CompleteAsync's token lookup - a QR pass is looked
+        // up by its hash, never by id, from an unauthenticated-until-verified scan; unique because
+        // a hash collision would let one prosumer's pass accidentally redeem another's reservation
+        var transactionTokenHashIndex = new CreateIndexModel<Transaction>(
+            Builders<Transaction>.IndexKeys.Ascending(t => t.TokenHash),
+            new CreateIndexOptions { Unique = true });
+        await Transactions.Indexes.CreateOneAsync(transactionTokenHashIndex, cancellationToken: cancellationToken);
     }
 }

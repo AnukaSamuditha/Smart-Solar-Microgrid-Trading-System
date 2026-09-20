@@ -59,11 +59,23 @@ class SecureSessionStore(context: Context) {
         prefs.edit().remove(KEY_API_TOKEN).apply()
     }
 
+    /** The Web Service refresh token (see LoginResponse.RefreshToken) for a remotely-authenticated session. */
+    fun saveRefreshToken(token: String) {
+        prefs.edit().putString(KEY_REFRESH_TOKEN, token).apply()
+    }
+
+    fun getRefreshToken(): String? = prefs.getString(KEY_REFRESH_TOKEN, null)
+
+    fun clearRefreshToken() {
+        prefs.edit().remove(KEY_REFRESH_TOKEN).apply()
+    }
+
     private companion object {
         const val PREFS_NAME = "secure_session_prefs"
         const val KEY_USER_ID = "user_id"
         const val KEY_ROLE = "role"
         const val KEY_LOGIN_STATE = "login_state"
         const val KEY_API_TOKEN = "api_token"
+        const val KEY_REFRESH_TOKEN = "refresh_token"
     }
 }

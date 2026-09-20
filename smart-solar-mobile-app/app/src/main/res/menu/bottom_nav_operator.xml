@@ -16,4 +16,8 @@
         android:id="@+id/operatorMapFragment"
         android:title="Map"
         android:icon="@drawable/ic_nav_map" />
+    <item
+        android:id="@+id/pendingProsumersFragment"
+        android:title="Requests"
+        android:icon="@drawable/ic_nav_profile" />
 </menu>

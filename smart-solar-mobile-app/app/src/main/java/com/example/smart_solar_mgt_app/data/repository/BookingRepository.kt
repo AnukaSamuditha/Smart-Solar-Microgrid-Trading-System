@@ -24,37 +24,43 @@ interface BookingRepository {
     /** Display-ready, joined-with-station-name rows for the My Bookings screen. */
     fun getBookingListItems(nic: String): List<BookingListItem>
 
-    /** Atomic: inserts the booking and consumes one station slot, or fails if the station isn't available. */
+    /** Local-first: writes a Pending/PENDING_SYNC row immediately (client-generated id) and
+     * queues the request for the backend - see LocalDbManager.createBookingLocally/SyncWorker.
+     * Always succeeds locally; a definitive server rejection (e.g. slot no longer available) is
+     * only discovered once synced and surfaces as SYNC_FAILED on the local row, not as an
+     * AppResult.Failure here. */
     fun createBooking(
         prosumerNic: String,
-        stationId: String,
+        nodeId: String,
+        slotId: String,
         bookingDate: LocalDate,
         bookingTime: LocalTime,
         energyAmount: Double
     ): AppResult<Booking>
 
-    /** Atomic: re-verifies ownership/status/12-hour notice before applying the change. */
+    /** Local-first reschedule of the time window only (node/slot/energy amount stay fixed - the
+     * backend's UpdateReservationRequest has no energyAmount field, matching its own deliberate
+     * "update only reschedules" design). Re-verifies ownership/status/12-hour notice against the
+     * local cache (the only synchronous check available now - see createBooking) before queuing. */
     fun updateBooking(
         bookingId: String,
         prosumerNic: String,
         bookingDate: LocalDate,
-        bookingTime: LocalTime,
-        energyAmount: Double
+        bookingTime: LocalTime
     ): AppResult<Booking>
 
-    /** Atomic: re-verifies ownership/status/12-hour notice, then cancels and restores the station slot. */
+    /** Local-first cancel: re-verifies ownership/status/12-hour notice against the local cache,
+     * then queues the cancellation for the backend. */
     fun cancelBooking(bookingId: String, prosumerNic: String): AppResult<Unit>
 
-    /**
-     * Cross-prosumer - requires GRID_OPERATOR. Not a true reactive stream (no Flow in this
-     * codebase yet); callers re-fetch on resume/refresh, same as every other list screen.
-     */
-    fun getAllPendingBookings(): List<Booking>
+    /** GRID_OPERATOR only. Local-first: queues an approve for the backend (Pending -> Confirmed).
+     * No local `bookings` row is touched - operators don't cache other prosumers' reservations
+     * (see file header on BookingRepositoryImpl) - and no QR transaction is generated here any
+     * more; see TransactionRepository for the prosumer-initiated QR pass flow. */
+    fun approveBooking(bookingId: String): AppResult<Unit>
 
-    /** GRID_OPERATOR only. PENDING -> APPROVED, and generates the QR transaction (Energy Transfer Pass). */
-    fun approveBooking(bookingId: String): AppResult<Booking>
-
-    /** GRID_OPERATOR only. PENDING -> CANCELLED (same terminal state a prosumer-initiated cancel uses), restores the station slot. */
+    /** GRID_OPERATOR only. Local-first: queues a reject for the backend (Pending -> Rejected, a
+     * terminal state distinct from a prosumer-initiated cancel). */
     fun rejectBooking(bookingId: String): AppResult<Unit>
 
     /** GRID_OPERATOR only. Cross-prosumer, every status - the read-only Bookings overview tab. */

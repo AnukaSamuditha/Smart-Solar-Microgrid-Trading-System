@@ -19,7 +19,9 @@ public record ReservationResponse(
     string SlotId,
     DateTime StartTime,
     DateTime EndTime,
+    double? EnergyAmount,
     string Status,
+    string? RejectionReason,
     DateTime CreatedAt,
     DateTime? UpdatedAt)
 {
@@ -34,7 +36,9 @@ public record ReservationResponse(
             reservation.SlotId,
             reservation.StartTime,
             reservation.EndTime,
+            reservation.EnergyAmount,
             reservation.Status.ToString(),
+            reservation.RejectionReason,
             reservation.CreatedAt,
             reservation.UpdatedAt);
 }

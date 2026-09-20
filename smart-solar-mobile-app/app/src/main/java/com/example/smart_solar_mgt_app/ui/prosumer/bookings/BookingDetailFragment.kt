@@ -61,7 +61,7 @@ class BookingDetailFragment : Fragment(R.layout.fragment_booking_detail) {
         viewLifecycleOwner.lifecycleScope.launch {
             val booking = withContext(Dispatchers.IO) { ServiceLocator.bookingRepository.getBookingById(id) }
             stationName = booking?.let {
-                withContext(Dispatchers.IO) { ServiceLocator.stationRepository.getStationById(it.stationId)?.stationName }
+                withContext(Dispatchers.IO) { ServiceLocator.nodeRepository.getNodeById(it.nodeId)?.name }
             } ?: "Unknown station"
 
             progress.isVisible = false
@@ -139,6 +139,7 @@ class BookingDetailFragment : Fragment(R.layout.fragment_booking_detail) {
         BookingStatus.APPROVED -> Color.parseColor("#2E7D32")
         BookingStatus.COMPLETED -> Color.parseColor("#1565C0")
         BookingStatus.CANCELLED -> Color.parseColor("#C62828")
+        BookingStatus.REJECTED -> Color.parseColor("#E65100")
         BookingStatus.EXPIRED -> Color.parseColor("#757575")
     }
 

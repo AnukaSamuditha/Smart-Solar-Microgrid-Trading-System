@@ -4,6 +4,7 @@ sealed class OperatorHomeUiState {
     data object Loading : OperatorHomeUiState()
     data object Empty : OperatorHomeUiState()
     data class Loaded(val items: List<PendingApprovalItem>) : OperatorHomeUiState()
+    data class Error(val message: String) : OperatorHomeUiState()
 }
 
 data class PendingApprovalItem(

@@ -1,14 +1,16 @@
 // ReservationEndpoints.cs
 // Purpose: Maps energy slot reservation endpoints (project-specification.md section 3.4).
-// Every action — create, list, get, reschedule, cancel — is available to both Backoffice and
-// Grid Operator staff (the "ReservationManagement" policy). There is no prosumer authentication
-// in this codebase yet, so creation via this API is inherently a staff-assisted booking (e.g.
-// over the phone), not prosumer self-service — that stays a not-yet-built mobile-app concern.
+// Staff (Backoffice/Grid Operator, the "ReservationManagement" policy) can create/list/get/
+// reschedule/cancel any reservation directly (immediate Confirmed, e.g. a phone booking), and
+// approve/reject prosumer-submitted requests. A prosumer (RoleNames.Prosumer policy) can submit
+// their own request (starts Pending) and manage only their own reservations, under the "mine"
+// routes - identity always comes from the JWT `sub` claim, never a client-supplied NIC.
 // See docs/energy-slot-reservation-management-implementation-plan.md.
 
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
+using smart_solar_mgt_api.Authorization;
 using smart_solar_mgt_api.Models.Dtos;
 using smart_solar_mgt_api.Models.Enums;
 using smart_solar_mgt_api.Services.Reservations;
@@ -33,6 +35,14 @@ public static class ReservationEndpoints
         group.MapGet("/{id}", GetReservationAsync).RequireAuthorization(ReservationManagementPolicy);
         group.MapPatch("/{id}", UpdateReservationAsync).RequireAuthorization(ReservationManagementPolicy);
         group.MapPatch("/{id}/cancel", CancelReservationAsync).RequireAuthorization(ReservationManagementPolicy);
+        group.MapPatch("/{id}/approve", ApproveReservationAsync).RequireAuthorization(ReservationManagementPolicy);
+        group.MapPatch("/{id}/reject", RejectReservationAsync).RequireAuthorization(ReservationManagementPolicy);
+
+        group.MapPost("/mine", RequestReservationAsync).RequireAuthorization(RoleNames.Prosumer);
+        group.MapGet("/mine", ListMyReservationsAsync).RequireAuthorization(RoleNames.Prosumer);
+        group.MapGet("/mine/{id}", GetMyReservationAsync).RequireAuthorization(RoleNames.Prosumer);
+        group.MapPatch("/mine/{id}", UpdateMyReservationAsync).RequireAuthorization(RoleNames.Prosumer);
+        group.MapPatch("/mine/{id}/cancel", CancelMyReservationAsync).RequireAuthorization(RoleNames.Prosumer);
 
         return app;
     }
@@ -150,6 +160,180 @@ public static class ReservationEndpoints
         return MapActionResult(result);
     }
 
+    // approve a Pending prosumer request, confirming it once the slot is verified still free
+    private static async Task<IResult> ApproveReservationAsync(
+        string id,
+        ClaimsPrincipal principal,
+        IReservationService reservationService,
+        CancellationToken cancellationToken)
+    {
+        var performedBy = principal.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? "unknown";
+        var result = await reservationService.ApproveAsync(id, performedBy, cancellationToken);
+        if (result != ReservationReviewResult.Succeeded)
+        {
+            return MapReviewResult(result);
+        }
+
+        var reservation = await reservationService.GetByIdAsync(id, cancellationToken);
+        return reservation is null
+            ? Results.NotFound()
+            : Results.Ok(ReservationResponse.FromEntity(reservation.Reservation, reservation.NodeName, reservation.ProsumerFullName));
+    }
+
+    // reject a Pending prosumer request with an optional reason shown back to the prosumer
+    private static async Task<IResult> RejectReservationAsync(
+        string id,
+        RejectReservationRequest request,
+        ClaimsPrincipal principal,
+        IReservationService reservationService,
+        CancellationToken cancellationToken)
+    {
+        var performedBy = principal.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? "unknown";
+        var result = await reservationService.RejectAsync(id, performedBy, request.Reason, cancellationToken);
+        return MapReviewResult(result);
+    }
+
+    // prosumer self-service: submit a reservation request; identity comes from the JWT, never
+    // from the request body, so one prosumer can never request on another's behalf
+    private static async Task<IResult> RequestReservationAsync(
+        RequestReservationRequest request,
+        ClaimsPrincipal principal,
+        IReservationService reservationService,
+        CancellationToken cancellationToken)
+    {
+        var validationError = ValidateRequestReservation(request);
+        if (validationError is not null)
+        {
+            return Results.BadRequest(new { error = validationError });
+        }
+
+        var nic = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (string.IsNullOrWhiteSpace(nic))
+        {
+            return Results.Unauthorized();
+        }
+
+        var (result, reservation) = await reservationService.RequestAsync(
+            nic, request.NodeId, request.SlotId, request.StartTime, request.EndTime, request.EnergyAmount, cancellationToken);
+
+        if (result != CreateReservationResult.Succeeded || reservation is null)
+        {
+            return MapCreateResult(result);
+        }
+
+        var response = ReservationResponse.FromEntity(reservation.Reservation, reservation.NodeName, reservation.ProsumerFullName);
+        return Results.Created($"/api/v1/reservations/mine/{reservation.Reservation.Id}", response);
+    }
+
+    // prosumer self-service: list only the caller's own reservations - any client-supplied
+    // prosumerNic filter is ignored in favor of the JWT's own NIC
+    private static async Task<IResult> ListMyReservationsAsync(
+        ClaimsPrincipal principal,
+        IReservationService reservationService,
+        CancellationToken cancellationToken,
+        string? nodeId = null,
+        string? status = null,
+        DateTime? dateFrom = null,
+        DateTime? dateTo = null,
+        int page = 1,
+        int pageSize = 20,
+        string? sortBy = null,
+        string? sortDir = null)
+    {
+        var nic = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (string.IsNullOrWhiteSpace(nic))
+        {
+            return Results.Unauthorized();
+        }
+
+        ReservationStatus? parsedStatus = null;
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (!Enum.TryParse<ReservationStatus>(status, ignoreCase: true, out var statusValue))
+            {
+                return Results.BadRequest(new { error = "InvalidStatusFilter" });
+            }
+
+            parsedStatus = statusValue;
+        }
+
+        var (items, totalCount) = await reservationService.ListAsync(
+            nic, nodeId, parsedStatus, dateFrom, dateTo, page, pageSize, sortBy, sortDir, cancellationToken);
+
+        var response = new PagedResult<ReservationResponse>(
+            items.Select(r => ReservationResponse.FromEntity(r.Reservation, r.NodeName, r.ProsumerFullName)).ToList(),
+            totalCount, Math.Max(page, 1), pageSize);
+        return Results.Ok(response);
+    }
+
+    // prosumer self-service: fetch one of the caller's own reservations
+    private static async Task<IResult> GetMyReservationAsync(
+        string id,
+        ClaimsPrincipal principal,
+        IReservationService reservationService,
+        CancellationToken cancellationToken)
+    {
+        var nic = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (string.IsNullOrWhiteSpace(nic))
+        {
+            return Results.Unauthorized();
+        }
+
+        var reservation = await reservationService.GetByIdForProsumerAsync(id, nic, cancellationToken);
+        return reservation is null
+            ? Results.NotFound()
+            : Results.Ok(ReservationResponse.FromEntity(reservation.Reservation, reservation.NodeName, reservation.ProsumerFullName));
+    }
+
+    // prosumer self-service: reschedule one of the caller's own reservations
+    private static async Task<IResult> UpdateMyReservationAsync(
+        string id,
+        UpdateReservationRequest request,
+        ClaimsPrincipal principal,
+        IReservationService reservationService,
+        CancellationToken cancellationToken)
+    {
+        var validationError = ValidateReservationWindow(request.StartTime, request.EndTime);
+        if (validationError is not null)
+        {
+            return Results.BadRequest(new { error = validationError });
+        }
+
+        var nic = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (string.IsNullOrWhiteSpace(nic))
+        {
+            return Results.Unauthorized();
+        }
+
+        var result = await reservationService.UpdateForProsumerAsync(id, nic, request.StartTime, request.EndTime, cancellationToken);
+        if (result != ReservationActionResult.Succeeded)
+        {
+            return MapActionResult(result);
+        }
+
+        var reservation = await reservationService.GetByIdForProsumerAsync(id, nic, cancellationToken);
+        return reservation is null
+            ? Results.NotFound()
+            : Results.Ok(ReservationResponse.FromEntity(reservation.Reservation, reservation.NodeName, reservation.ProsumerFullName));
+    }
+
+    // prosumer self-service: cancel one of the caller's own reservations
+    private static async Task<IResult> CancelMyReservationAsync(
+        string id,
+        ClaimsPrincipal principal,
+        IReservationService reservationService,
+        CancellationToken cancellationToken)
+    {
+        var nic = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (string.IsNullOrWhiteSpace(nic))
+        {
+            return Results.Unauthorized();
+        }
+
+        var result = await reservationService.CancelForProsumerAsync(id, nic, cancellationToken);
+        return MapActionResult(result);
+    }
+
     // validate the create-reservation request body: NIC format, node/slot ids present, time window
     private static string? ValidateCreateRequest(CreateReservationRequest request)
     {
@@ -158,6 +342,23 @@ public static class ReservationEndpoints
             return "InvalidNic";
         }
 
+        if (string.IsNullOrWhiteSpace(request.NodeId))
+        {
+            return "NodeIdRequired";
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SlotId))
+        {
+            return "SlotIdRequired";
+        }
+
+        return ValidateReservationWindow(request.StartTime, request.EndTime);
+    }
+
+    // validate a prosumer self-service request body: node/slot ids present, time window (no NIC
+    // to validate - identity comes from the JWT, not the body)
+    private static string? ValidateRequestReservation(RequestReservationRequest request)
+    {
         if (string.IsNullOrWhiteSpace(request.NodeId))
         {
             return "NodeIdRequired";
@@ -214,6 +415,16 @@ public static class ReservationEndpoints
         ReservationActionResult.AlreadyCancelled => Results.Conflict(new { error = "AlreadyCancelled" }),
         ReservationActionResult.AlreadyStarted => Results.Conflict(new { error = "AlreadyStarted" }),
         ReservationActionResult.InsufficientNotice => Results.Conflict(new { error = "InsufficientNotice" }),
+        _ => Results.Problem()
+    };
+
+    // translate a ReservationReviewResult into the matching HTTP response
+    private static IResult MapReviewResult(ReservationReviewResult result) => result switch
+    {
+        ReservationReviewResult.Succeeded => Results.NoContent(),
+        ReservationReviewResult.NotFound => Results.NotFound(),
+        ReservationReviewResult.NotPending => Results.Conflict(new { error = "NotPending" }),
+        ReservationReviewResult.SlotNoLongerAvailable => Results.Conflict(new { error = "SlotNoLongerAvailable" }),
         _ => Results.Problem()
     };
 }

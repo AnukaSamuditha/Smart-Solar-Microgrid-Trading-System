@@ -19,8 +19,9 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.di.ServiceLocator
-import com.example.smart_solar_mgt_app.domain.model.SolarStation
-import com.example.smart_solar_mgt_app.domain.model.StationStatus
+import com.example.smart_solar_mgt_app.domain.model.BatterySlotStatus
+import com.example.smart_solar_mgt_app.domain.model.MicrogridNode
+import com.example.smart_solar_mgt_app.domain.model.NodeStatus
 import com.example.smart_solar_mgt_app.ui.prosumer.newbooking.NewBookingFragment
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -59,13 +60,13 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
 
     private val viewModel: MapViewModel by viewModels {
-        viewModelFactory { initializer { MapViewModel(ServiceLocator.stationRepository) } }
+        viewModelFactory { initializer { MapViewModel(ServiceLocator.nodeRepository) } }
     }
 
     private var googleMap: GoogleMap? = null
-    private var stationById: Map<String, SolarStation> = emptyMap()
+    private var stationById: Map<String, MicrogridNode> = emptyMap()
     private var markerByStationId: MutableMap<String, Marker> = mutableMapOf()
-    private var pendingStations: List<SolarStation>? = null
+    private var pendingStations: List<MicrogridNode>? = null
 
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<View>
     private lateinit var bottomSheet: View
@@ -152,9 +153,9 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
             tvEmptyMap.isVisible = state is MapUiState.Empty
 
             if (state is MapUiState.Loaded) {
-                stationById = state.stations.associateBy { it.stationId }
-                adapter.submitList(state.stations)
-                renderMarkers(state.stations)
+                stationById = state.nodes.associateBy { it.nodeId }
+                adapter.submitList(state.nodes)
+                renderMarkers(state.nodes)
             }
         }
     }
@@ -181,7 +182,7 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
         pendingStations?.let { renderMarkers(it) }
     }
 
-    private fun renderMarkers(stations: List<SolarStation>) {
+    private fun renderMarkers(stations: List<MicrogridNode>) {
         val map = googleMap ?: run { pendingStations = stations; return }
         map.clear()
         markerByStationId.clear()
@@ -189,13 +190,13 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(LatLng(station.latitude, station.longitude))
-                    .title(station.stationName)
+                    .title(station.name)
                     .snippet(if (canBook(station)) "Tap to book" else station.status.name.replace('_', ' '))
                     .icon(BitmapDescriptorFactory.defaultMarker(StationMarkerIcons.hueFor(station.status)))
             )
             if (marker != null) {
-                marker.tag = station.stationId
-                markerByStationId[station.stationId] = marker
+                marker.tag = station.nodeId
+                markerByStationId[station.nodeId] = marker
             }
         }
         map.setOnMarkerClickListener { marker ->
@@ -252,27 +253,27 @@ class MapFragment : Fragment(R.layout.fragment_map), OnMapReadyCallback {
         }
     }
 
-    private fun canBook(station: SolarStation): Boolean =
-        station.status == StationStatus.ACTIVE && station.availableSlots > 0
+    private fun canBook(station: MicrogridNode): Boolean =
+        station.status == NodeStatus.ACTIVE && station.batterySlots.any { it.status == BatterySlotStatus.AVAILABLE }
 
     /**
      * Zooms the map to the station and collapses the sheet so the zoomed-in map is visible
      * (matching the Operator's Map), or - if there's no map at all (no Play Services) - goes
      * straight to the booking attempt since there's nothing to zoom into.
      */
-    private fun focusStation(station: SolarStation) {
+    private fun focusStation(station: MicrogridNode) {
         val map = googleMap ?: run { attemptBook(station); return }
         map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(station.latitude, station.longitude), 16f))
-        markerByStationId[station.stationId]?.showInfoWindow()
+        markerByStationId[station.nodeId]?.showInfoWindow()
         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 
-    private fun attemptBook(station: SolarStation) {
+    private fun attemptBook(station: MicrogridNode) {
         if (canBook(station)) {
-            val args = Bundle().apply { putString(NewBookingFragment.ARG_STATION_ID, station.stationId) }
+            val args = Bundle().apply { putString(NewBookingFragment.ARG_STATION_ID, station.nodeId) }
             findNavController().navigate(R.id.action_global_newBookingFragment, args)
         } else {
-            Toast.makeText(requireContext(), "${station.stationName} is not available for booking right now", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "${station.name} is not available for booking right now", Toast.LENGTH_SHORT).show()
         }
     }
 }

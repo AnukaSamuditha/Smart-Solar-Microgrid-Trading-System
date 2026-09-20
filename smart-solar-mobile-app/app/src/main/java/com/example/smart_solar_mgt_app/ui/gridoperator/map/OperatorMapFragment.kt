@@ -17,7 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.di.ServiceLocator
-import com.example.smart_solar_mgt_app.domain.model.SolarStation
+import com.example.smart_solar_mgt_app.domain.model.MicrogridNode
 import com.example.smart_solar_mgt_app.ui.prosumer.map.MapUiState
 import com.example.smart_solar_mgt_app.ui.prosumer.map.MapViewModel
 import com.example.smart_solar_mgt_app.ui.prosumer.map.StationListAdapter
@@ -62,13 +62,13 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReadyCallback {
 
     private val viewModel: MapViewModel by viewModels {
-        viewModelFactory { initializer { MapViewModel(ServiceLocator.stationRepository) } }
+        viewModelFactory { initializer { MapViewModel(ServiceLocator.nodeRepository) } }
     }
 
     private var googleMap: GoogleMap? = null
-    private var stationById: Map<String, SolarStation> = emptyMap()
+    private var stationById: Map<String, MicrogridNode> = emptyMap()
     private var markerByStationId: MutableMap<String, Marker> = mutableMapOf()
-    private var pendingStations: List<SolarStation>? = null
+    private var pendingStations: List<MicrogridNode>? = null
 
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<View>
     private lateinit var bottomSheet: View
@@ -155,9 +155,9 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReady
             tvEmptyMap.isVisible = state is MapUiState.Empty
 
             if (state is MapUiState.Loaded) {
-                stationById = state.stations.associateBy { it.stationId }
-                adapter.submitList(state.stations)
-                renderMarkers(state.stations)
+                stationById = state.nodes.associateBy { it.nodeId }
+                adapter.submitList(state.nodes)
+                renderMarkers(state.nodes)
             }
         }
     }
@@ -179,7 +179,7 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReady
         pendingStations?.let { renderMarkers(it) }
     }
 
-    private fun renderMarkers(stations: List<SolarStation>) {
+    private fun renderMarkers(stations: List<MicrogridNode>) {
         val map = googleMap ?: run { pendingStations = stations; return }
         map.clear()
         markerByStationId.clear()
@@ -187,12 +187,12 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReady
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(LatLng(station.latitude, station.longitude))
-                    .title(station.stationName)
+                    .title(station.name)
                     .icon(BitmapDescriptorFactory.defaultMarker(StationMarkerIcons.hueFor(station.status)))
             )
             if (marker != null) {
-                marker.tag = station.stationId
-                markerByStationId[station.stationId] = marker
+                marker.tag = station.nodeId
+                markerByStationId[station.nodeId] = marker
             }
         }
         map.setOnMarkerClickListener { marker ->
@@ -250,10 +250,10 @@ class OperatorMapFragment : Fragment(R.layout.fragment_operator_map), OnMapReady
     }
 
     /** Zooms the map to the station and collapses the sheet so the zoomed-in map is visible. */
-    private fun focusStation(station: SolarStation) {
+    private fun focusStation(station: MicrogridNode) {
         val map = googleMap ?: return
         map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(station.latitude, station.longitude), 16f))
-        markerByStationId[station.stationId]?.showInfoWindow()
+        markerByStationId[station.nodeId]?.showInfoWindow()
         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 }

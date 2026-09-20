@@ -19,7 +19,7 @@ class LoginViewModel(private val securityManager: SecurityManager) : ViewModel()
     fun onLoginClicked(nicInput: String, passwordInput: String) {
         val nic = nicInput.trim()
         if (nic.isEmpty()) {
-            _state.value = LoginUiState.FieldError(LoginField.NIC, "NIC is required")
+            _state.value = LoginUiState.FieldError(LoginField.NIC, "NIC or email is required")
             return
         }
         if (passwordInput.isEmpty()) {
@@ -34,8 +34,12 @@ class LoginViewModel(private val securityManager: SecurityManager) : ViewModel()
             }
             _state.value = when (result) {
                 is LoginResult.Success -> LoginUiState.Success(result.session.role)
-                LoginResult.InvalidCredentials -> LoginUiState.FormError("Invalid NIC or password")
+                LoginResult.InvalidCredentials -> LoginUiState.FormError("Invalid NIC/email or password")
                 is LoginResult.AccountNotActive -> LoginUiState.FormError(messageFor(result.status))
+                is LoginResult.Error -> LoginUiState.FormError(result.message)
+                LoginResult.PendingApproval -> LoginUiState.PendingApproval
+                LoginResult.AccountCreationDenied -> LoginUiState.AccountCreationDenied
+                LoginResult.PasswordNotSet -> LoginUiState.PasswordNotSet
             }
         }
     }

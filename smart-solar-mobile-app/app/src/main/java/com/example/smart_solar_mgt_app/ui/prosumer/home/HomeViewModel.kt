@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.smart_solar_mgt_app.core.security.SecurityManager
 import com.example.smart_solar_mgt_app.data.repository.AuthRepository
 import com.example.smart_solar_mgt_app.data.repository.BookingRepository
-import com.example.smart_solar_mgt_app.data.repository.StationRepository
+import com.example.smart_solar_mgt_app.data.repository.NodeRepository
 import com.example.smart_solar_mgt_app.domain.model.BookingCounts
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 
 class HomeViewModel(
     private val bookingRepository: BookingRepository,
-    private val stationRepository: StationRepository,
+    private val nodeRepository: NodeRepository,
     private val securityManager: SecurityManager,
     private val authRepository: AuthRepository
 ) : ViewModel() {
@@ -50,7 +50,7 @@ class HomeViewModel(
 
         val upcomingBooking = bookingRepository.getUpcomingBooking(nic)
         val upcoming = upcomingBooking?.let { booking ->
-            val stationName = stationRepository.getStationById(booking.stationId)?.stationName ?: "Unknown station"
+            val stationName = nodeRepository.getNodeById(booking.nodeId)?.name ?: "Unknown station"
             UpcomingBooking(
                 bookingId = booking.bookingId,
                 stationName = stationName,

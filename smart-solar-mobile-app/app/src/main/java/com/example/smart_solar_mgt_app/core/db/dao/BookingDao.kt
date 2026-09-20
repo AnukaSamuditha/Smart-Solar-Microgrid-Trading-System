@@ -14,6 +14,13 @@ class BookingDao {
         db.insertOrThrow(Bookings.TABLE, null, booking.toContentValues())
     }
 
+    /** Insert-or-replace, keyed by bookingId - used to write-through-cache a reservation the
+     * backend just confirmed exists (create/update), whose id (the server's own reservation id)
+     * this device may or may not already have a row for. */
+    fun upsert(db: SQLiteDatabase, booking: Booking) {
+        db.insertWithOnConflict(Bookings.TABLE, null, booking.toContentValues(), SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
     fun getById(db: SQLiteDatabase, bookingId: String): Booking? {
         db.query(Bookings.TABLE, null, "${Bookings.COL_BOOKING_ID} = ?", arrayOf(bookingId), null, null, null).use { cursor ->
             return if (cursor.moveToFirst()) cursor.toBooking() else null
@@ -23,12 +30,6 @@ class BookingDao {
     fun getByProsumer(db: SQLiteDatabase, nic: String): List<Booking> {
         val orderBy = "${Bookings.COL_BOOKING_DATE} DESC, ${Bookings.COL_BOOKING_TIME} DESC"
         db.query(Bookings.TABLE, null, "${Bookings.COL_PROSUMER_NIC} = ?", arrayOf(nic), null, null, orderBy).use { cursor ->
-            return cursor.toBookingList()
-        }
-    }
-
-    fun getByStation(db: SQLiteDatabase, stationId: String): List<Booking> {
-        db.query(Bookings.TABLE, null, "${Bookings.COL_STATION_ID} = ?", arrayOf(stationId), null, null, null).use { cursor ->
             return cursor.toBookingList()
         }
     }
@@ -103,24 +104,23 @@ class BookingDao {
         db.update(Bookings.TABLE, values, "${Bookings.COL_BOOKING_ID} = ?", arrayOf(bookingId))
     }
 
-    /** Updates the editable fields of a modify (date/time/energy), stamping sync_status + updated_at. */
-    fun updateFields(
-        db: SQLiteDatabase,
-        bookingId: String,
-        bookingDate: String,
-        bookingTime: String,
-        energyAmount: Double,
-        syncStatus: SyncStatus,
-        updatedAt: Long
-    ) {
+    /** Local-first reschedule: stamps the new date/time and forces PENDING_SYNC, since the
+     * change hasn't reached the backend yet - see LocalDbManager.updateBookingLocally. */
+    fun updateSchedule(db: SQLiteDatabase, bookingId: String, bookingDate: String, bookingTime: String, updatedAt: Long) {
         val values = ContentValues().apply {
             put(Bookings.COL_BOOKING_DATE, bookingDate)
             put(Bookings.COL_BOOKING_TIME, bookingTime)
-            put(Bookings.COL_ENERGY_AMOUNT, energyAmount)
-            put(Bookings.COL_SYNC_STATUS, syncStatus.name)
+            put(Bookings.COL_SYNC_STATUS, SyncStatus.PENDING_SYNC.name)
             put(Bookings.COL_UPDATED_AT, updatedAt)
         }
         db.update(Bookings.TABLE, values, "${Bookings.COL_BOOKING_ID} = ?", arrayOf(bookingId))
+    }
+
+    /** Removes a booking row by id - used only to retire a client-generated temporary id once
+     * RESERVATION_CREATE syncs and the backend's real id takes over (see
+     * LocalDbManager.reconcileCreatedBooking). */
+    fun delete(db: SQLiteDatabase, bookingId: String) {
+        db.delete(Bookings.TABLE, "${Bookings.COL_BOOKING_ID} = ?", arrayOf(bookingId))
     }
 
     private fun Cursor.toBookingList(): List<Booking> {
@@ -132,7 +132,8 @@ class BookingDao {
     private fun Booking.toContentValues(): ContentValues = ContentValues().apply {
         put(Bookings.COL_BOOKING_ID, bookingId)
         put(Bookings.COL_PROSUMER_NIC, prosumerNic)
-        put(Bookings.COL_STATION_ID, stationId)
+        put(Bookings.COL_NODE_ID, nodeId)
+        put(Bookings.COL_SLOT_ID, slotId)
         put(Bookings.COL_BOOKING_DATE, bookingDate)
         put(Bookings.COL_BOOKING_TIME, bookingTime)
         put(Bookings.COL_ENERGY_AMOUNT, energyAmount)
@@ -145,7 +146,8 @@ class BookingDao {
     private fun Cursor.toBooking(): Booking = Booking(
         bookingId = getString(getColumnIndexOrThrow(Bookings.COL_BOOKING_ID)),
         prosumerNic = getString(getColumnIndexOrThrow(Bookings.COL_PROSUMER_NIC)),
-        stationId = getString(getColumnIndexOrThrow(Bookings.COL_STATION_ID)),
+        nodeId = getString(getColumnIndexOrThrow(Bookings.COL_NODE_ID)),
+        slotId = getString(getColumnIndexOrThrow(Bookings.COL_SLOT_ID)),
         bookingDate = getString(getColumnIndexOrThrow(Bookings.COL_BOOKING_DATE)),
         bookingTime = getString(getColumnIndexOrThrow(Bookings.COL_BOOKING_TIME)),
         energyAmount = getDouble(getColumnIndexOrThrow(Bookings.COL_ENERGY_AMOUNT)),

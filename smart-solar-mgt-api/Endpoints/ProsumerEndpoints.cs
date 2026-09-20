@@ -27,13 +27,101 @@ public static class ProsumerEndpoints
         var group = app.MapGroup("/api/v1/prosumers").WithTags("Prosumers");
 
         group.MapPost("/", CreateProsumerAsync).RequireAuthorization(ProsumerManagementPolicy);
+        group.MapPost("/register", RegisterProsumerAsync); // public - self-registration from the mobile app
+        group.MapGet("/me", GetMyProsumerProfileAsync).RequireAuthorization(RoleNames.Prosumer);
         group.MapGet("/", ListProsumersAsync).RequireAuthorization(ProsumerManagementPolicy);
         group.MapPut("/{nic}", UpdateProsumerAsync).RequireAuthorization(ProsumerManagementPolicy);
+        group.MapPatch("/{nic}/approve", ApproveProsumerAsync).RequireAuthorization(ProsumerManagementPolicy);
+        group.MapPatch("/{nic}/deny", DenyProsumerAsync).RequireAuthorization(ProsumerManagementPolicy);
         group.MapPatch("/{nic}/deactivate", DeactivateProsumerAsync).RequireAuthorization(ProsumerManagementPolicy);
         group.MapPatch("/{nic}/reactivate", ReactivateProsumerAsync).RequireAuthorization(RoleNames.Backoffice);
 
         return app;
     }
+
+    // self-registration from the mobile app: creates a PendingApproval profile with no password,
+    // awaiting a Backoffice/Grid Operator reviewer (see ApproveProsumerAsync/DenyProsumerAsync)
+    private static async Task<IResult> RegisterProsumerAsync(
+        RegisterProsumerRequest request,
+        IProsumerService prosumerService,
+        CancellationToken cancellationToken)
+    {
+        var validationError = ValidateCreateRequest(new CreateProsumerRequest(request.Nic, request.Email, request.FullName));
+        if (validationError is not null)
+        {
+            return Results.BadRequest(new { error = validationError });
+        }
+
+        var result = await prosumerService.RegisterAsync(
+            request.Nic, request.Email, request.FullName, request.Phone, request.Address, cancellationToken);
+
+        if (result != ProsumerCreateResult.Succeeded)
+        {
+            return result switch
+            {
+                ProsumerCreateResult.NicConflict => Results.Conflict(new { error = "NicAlreadyInUse" }),
+                ProsumerCreateResult.EmailConflict => Results.Conflict(new { error = "EmailAlreadyInUse" }),
+                _ => Results.Problem()
+            };
+        }
+
+        var prosumer = await prosumerService.GetByNicAsync(request.Nic, cancellationToken);
+        return Results.Created($"/api/v1/prosumers/{prosumer!.Nic}", ProsumerResponse.FromEntity(prosumer));
+    }
+
+    // a logged-in prosumer's own profile - the mobile app's only read of prosumer profile data
+    // (name/email/phone/address), since it never has direct access to the full list endpoint
+    // (that's Backoffice/Grid Operator only). NIC comes from the JWT's sub claim
+    // (JwtTokenService.GenerateAccessToken(Prosumer)), never a route/query parameter, so a
+    // prosumer can only ever fetch their own record.
+    private static async Task<IResult> GetMyProsumerProfileAsync(
+        ClaimsPrincipal principal,
+        IProsumerService prosumerService,
+        CancellationToken cancellationToken)
+    {
+        var nic = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (string.IsNullOrWhiteSpace(nic))
+        {
+            return Results.Unauthorized();
+        }
+
+        var prosumer = await prosumerService.GetByNicAsync(nic, cancellationToken);
+        return prosumer is null ? Results.NotFound() : Results.Ok(ProsumerResponse.FromEntity(prosumer));
+    }
+
+    // approve a PendingApproval self-registration request (Backoffice or Grid Operator)
+    private static async Task<IResult> ApproveProsumerAsync(
+        string nic,
+        ClaimsPrincipal principal,
+        IProsumerService prosumerService,
+        CancellationToken cancellationToken)
+    {
+        var performedBy = principal.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? "unknown";
+        var result = await prosumerService.ApproveAsync(nic, performedBy, cancellationToken);
+        return MapReviewResult(result);
+    }
+
+    // deny a PendingApproval self-registration request, optionally with a reason (Backoffice or Grid Operator)
+    private static async Task<IResult> DenyProsumerAsync(
+        string nic,
+        DenyProsumerRequest? request,
+        ClaimsPrincipal principal,
+        IProsumerService prosumerService,
+        CancellationToken cancellationToken)
+    {
+        var performedBy = principal.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? "unknown";
+        var result = await prosumerService.DenyAsync(nic, performedBy, request?.Reason, cancellationToken);
+        return MapReviewResult(result);
+    }
+
+    // translate a ProsumerReviewResult into the matching HTTP response
+    private static IResult MapReviewResult(ProsumerReviewResult result) => result switch
+    {
+        ProsumerReviewResult.Succeeded => Results.NoContent(),
+        ProsumerReviewResult.NotFound => Results.NotFound(),
+        ProsumerReviewResult.NotPendingApproval => Results.Conflict(new { error = "NotPendingApproval" }),
+        _ => Results.Problem()
+    };
 
     // create a new prosumer profile from a NIC, email, and optional full name; sends a setup
     // invitation email rather than accepting a password directly (see ProsumerService.CreateAsync)

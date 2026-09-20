@@ -17,7 +17,8 @@ import com.example.smart_solar_mgt_app.R
 import com.example.smart_solar_mgt_app.core.common.applyEdgeToEdgeContentPadding
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.Booking
-import com.example.smart_solar_mgt_app.domain.model.SolarStation
+import com.example.smart_solar_mgt_app.domain.model.BatterySlotStatus
+import com.example.smart_solar_mgt_app.domain.model.MicrogridNode
 import com.example.smart_solar_mgt_app.ui.prosumer.bookingsummary.BookingActionSummaryFragment
 import com.example.smart_solar_mgt_app.ui.prosumer.bookingsummary.BookingActionType
 import kotlinx.coroutines.Dispatchers
@@ -41,25 +42,30 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
     private val viewModel: NewBookingViewModel by viewModels {
         viewModelFactory {
             initializer {
-                NewBookingViewModel(ServiceLocator.bookingRepository, ServiceLocator.stationRepository, ServiceLocator.securityManager)
+                NewBookingViewModel(ServiceLocator.bookingRepository, ServiceLocator.nodeRepository, ServiceLocator.securityManager)
             }
         }
     }
 
-    private val preselectedStationId: String? by lazy { arguments?.getString(ARG_STATION_ID) }
+    // Bundle key name kept as ARG_STATION_ID (an internal identifier, never shown to the user)
+    // to avoid touching every existing caller - the value it carries is a node id.
+    private val preselectedNodeId: String? by lazy { arguments?.getString(ARG_STATION_ID) }
     private val editBookingId: String? by lazy { arguments?.getString(ARG_BOOKING_ID) }
 
     private var editingBooking: Booking? = null
-    private var selectedStationId: String? = null
+    private var selectedNodeId: String? = null
+    private var selectedSlotId: String? = null
     private var selectedDate: LocalDate? = null
     private var selectedTime: LocalTime? = null
-    private var stationsById: Map<String, SolarStation> = emptyMap()
+    private var nodesById: Map<String, MicrogridNode> = emptyMap()
 
     private lateinit var tilStation: TextInputLayout
+    private lateinit var tilSlot: TextInputLayout
     private lateinit var tilDate: TextInputLayout
     private lateinit var tilTime: TextInputLayout
     private lateinit var tilEnergyAmount: TextInputLayout
     private lateinit var etStation: AutoCompleteTextView
+    private lateinit var etSlot: AutoCompleteTextView
     private lateinit var etDate: TextInputEditText
     private lateinit var etTime: TextInputEditText
     private lateinit var etEnergyAmount: TextInputEditText
@@ -70,6 +76,7 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
     private val fieldLayouts by lazy {
         mapOf(
             BookingField.STATION to tilStation,
+            BookingField.SLOT to tilSlot,
             BookingField.DATE to tilDate,
             BookingField.TIME to tilTime,
             BookingField.ENERGY_AMOUNT to tilEnergyAmount
@@ -82,15 +89,17 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
 
         view.findViewById<View>(R.id.btnBack).setOnClickListener { findNavController().popBackStack() }
 
-        selectedStationId = preselectedStationId
+        selectedNodeId = preselectedNodeId
 
         val isEditMode = editBookingId != null
 
         tilStation = view.findViewById(R.id.tilStation)
+        tilSlot = view.findViewById(R.id.tilSlot)
         tilDate = view.findViewById(R.id.tilDate)
         tilTime = view.findViewById(R.id.tilTime)
         tilEnergyAmount = view.findViewById(R.id.tilEnergyAmount)
         etStation = view.findViewById(R.id.etStation)
+        etSlot = view.findViewById(R.id.etSlot)
         etDate = view.findViewById(R.id.etDate)
         etTime = view.findViewById(R.id.etTime)
         etEnergyAmount = view.findViewById(R.id.etEnergyAmount)
@@ -104,6 +113,10 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
         if (isEditMode) {
             btnConfirmBooking.text = "Save Changes"
             view.findViewById<android.widget.TextView>(R.id.tvNewBookingTitle)?.text = "Edit Reservation"
+            // The backend's reschedule endpoint only accepts a new time window - node/slot/energy
+            // amount stay fixed (see BookingRepository.updateBooking) - so this field is locked
+            // to whatever was originally booked rather than silently ignoring an edit to it.
+            etEnergyAmount.isEnabled = false
         }
 
         btnConfirmBooking.setOnClickListener {
@@ -112,14 +125,16 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
             if (bookingId != null) {
                 viewModel.onUpdateClicked(
                     bookingId,
-                    selectedStationId,
+                    selectedNodeId,
+                    selectedSlotId,
                     selectedDate,
                     selectedTime,
                     etEnergyAmount.text?.toString().orEmpty()
                 )
             } else {
                 viewModel.onConfirmClicked(
-                    selectedStationId,
+                    selectedNodeId,
+                    selectedSlotId,
                     selectedDate,
                     selectedTime,
                     etEnergyAmount.text?.toString().orEmpty()
@@ -127,13 +142,13 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
             }
         }
 
-        viewModel.stations.observe(viewLifecycleOwner) { stations -> onStationsLoaded(stations) }
+        viewModel.nodes.observe(viewLifecycleOwner) { nodes -> onNodesLoaded(nodes) }
         viewModel.formState.observe(viewLifecycleOwner) { state -> render(state) }
 
         if (isEditMode) {
             loadBookingForEdit(editBookingId!!)
         } else {
-            viewModel.loadStations(preselectedStationId)
+            viewModel.loadNodes()
         }
     }
 
@@ -146,43 +161,63 @@ class NewBookingFragment : Fragment(R.layout.fragment_new_booking) {
                 return@launch
             }
             editingBooking = booking
+            selectedSlotId = booking.slotId
             selectedDate = LocalDate.parse(booking.bookingDate)
             selectedTime = LocalTime.parse(booking.bookingTime)
             etDate.setText(booking.bookingDate)
             etTime.setText(booking.bookingTime)
             etEnergyAmount.setText(booking.energyAmount.toString())
-            viewModel.loadStations(booking.stationId)
+            viewModel.loadNodes()
         }
     }
 
-    private fun onStationsLoaded(stations: List<SolarStation>) {
-        stationsById = stations.associateBy { it.stationId }
+    private fun onNodesLoaded(nodes: List<MicrogridNode>) {
+        nodesById = nodes.associateBy { it.nodeId }
 
-        val lockedStationId = preselectedStationId ?: editingBooking?.stationId
-        if (lockedStationId != null) {
-            selectedStationId = lockedStationId
-            val station = stationsById[lockedStationId]
+        val lockedNodeId = preselectedNodeId ?: editingBooking?.nodeId
+        if (lockedNodeId != null) {
+            selectedNodeId = lockedNodeId
+            val node = nodesById[lockedNodeId]
             etStation.isEnabled = false
-            if (station != null) {
-                etStation.setText(stationLabel(station), false)
-                updateCapacityHint(station)
+            etSlot.isEnabled = false
+            if (node != null) {
+                etStation.setText(nodeLabel(node), false)
+                updateCapacityHint(node)
             }
+            etSlot.setText(slotLabel(selectedSlotId), false)
             return
         }
 
-        val labels = stations.map { stationLabel(it) }
+        val labels = nodes.map { nodeLabel(it) }
         etStation.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, labels))
         etStation.setOnItemClickListener { _, _, position, _ ->
-            val station = stations[position]
-            selectedStationId = station.stationId
-            updateCapacityHint(station)
+            val node = nodes[position]
+            selectedNodeId = node.nodeId
+            selectedSlotId = null
+            etSlot.setText("", false)
+            updateCapacityHint(node)
+            populateSlotDropdown(node)
         }
     }
 
-    private fun stationLabel(station: SolarStation) = "${station.stationName} (${station.availableSlots} slots left)"
+    private fun populateSlotDropdown(node: MicrogridNode) {
+        val availableSlots = node.batterySlots.filter { it.status == BatterySlotStatus.AVAILABLE }
+        val labels = availableSlots.map { slotLabel(it.slotId) }
+        etSlot.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, labels))
+        etSlot.setOnItemClickListener { _, _, position, _ ->
+            selectedSlotId = availableSlots[position].slotId
+        }
+    }
 
-    private fun updateCapacityHint(station: SolarStation) {
-        tvCapacityHint.text = "Max available at this station: ${station.capacityKwh} kWh"
+    private fun nodeLabel(node: MicrogridNode): String {
+        val availableCount = node.batterySlots.count { it.status == BatterySlotStatus.AVAILABLE }
+        return "${node.name} ($availableCount slots left)"
+    }
+
+    private fun slotLabel(slotId: String?): String = if (slotId == null) "" else "Slot $slotId"
+
+    private fun updateCapacityHint(node: MicrogridNode) {
+        tvCapacityHint.text = "Max available at this station: ${node.capacityKw} kWh"
         tvCapacityHint.isVisible = true
     }
 

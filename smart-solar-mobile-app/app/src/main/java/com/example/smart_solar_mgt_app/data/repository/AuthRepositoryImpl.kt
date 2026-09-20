@@ -47,4 +47,8 @@ class AuthRepositoryImpl(private val localDbManager: LocalDbManager) : AuthRepos
     override fun clearSessionMirror() {
         localDbManager.clearSessionMirror()
     }
+
+    override fun upsertProsumerProfileCache(nic: String, fullName: String, email: String, phone: String?, address: String?) {
+        localDbManager.upsertProsumerProfileCache(nic, fullName, email, phone, address)
+    }
 }

@@ -5,7 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smart_solar_mgt_app.data.repository.BookingRepository
-import com.example.smart_solar_mgt_app.data.repository.StationRepository
+import com.example.smart_solar_mgt_app.data.repository.NodeRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
  */
 class BookingActionSummaryViewModel(
     private val bookingRepository: BookingRepository,
-    private val stationRepository: StationRepository
+    private val nodeRepository: NodeRepository
 ) : ViewModel() {
 
     private val _state = MutableLiveData<BookingActionSummaryUiState>(BookingActionSummaryUiState.Loading)
@@ -34,7 +34,7 @@ class BookingActionSummaryViewModel(
     private fun buildState(bookingId: String, actionType: BookingActionType): BookingActionSummaryUiState {
         val booking = bookingRepository.getBookingById(bookingId)
             ?: return BookingActionSummaryUiState.Error("This reservation is no longer available.")
-        val stationName = stationRepository.getStationById(booking.stationId)?.stationName ?: booking.stationId
+        val stationName = nodeRepository.getNodeById(booking.nodeId)?.name ?: booking.nodeId
         return BookingActionSummaryUiState.Loaded(actionType, booking, stationName)
     }
 }

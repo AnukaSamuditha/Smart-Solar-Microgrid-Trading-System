@@ -2,8 +2,11 @@
 // Purpose: Maps microgrid node (solar grid hub) management endpoints. Registration, schedule
 // updates, deactivation, and reactivation are Backoffice-only; listing/reading and battery-slot
 // status updates are available to both Backoffice and Grid Operator staff (the
-// "NodeBatterySlotManagement" policy), per project-specification.md sections 3.3 and 6. See
-// docs/microgrid-node-management-implementation-plan.md.
+// "NodeBatterySlotManagement" policy), per project-specification.md sections 3.3 and 6. A
+// prosumer (RoleNames.Prosumer policy) can browse Active nodes read-only under the "mine" routes,
+// to pick a node/slot when submitting a reservation request (see ReservationEndpoints) - a
+// Deactivated node is invisible on these routes even though staff can still see it on the routes
+// above. See docs/microgrid-node-management-implementation-plan.md.
 
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -31,6 +34,9 @@ public static class MicrogridNodeEndpoints
         group.MapPatch("/{id}/battery-slots/{slotId}", UpdateBatterySlotStatusAsync).RequireAuthorization(NodeBatterySlotManagementPolicy);
         group.MapPatch("/{id}/deactivate", DeactivateNodeAsync).RequireAuthorization(RoleNames.Backoffice);
         group.MapPatch("/{id}/reactivate", ReactivateNodeAsync).RequireAuthorization(RoleNames.Backoffice);
+
+        group.MapGet("/mine", ListNodesForProsumerAsync).RequireAuthorization(RoleNames.Prosumer);
+        group.MapGet("/mine/{id}", GetNodeForProsumerAsync).RequireAuthorization(RoleNames.Prosumer);
 
         return app;
     }
@@ -94,6 +100,40 @@ public static class MicrogridNodeEndpoints
     {
         var node = await nodeService.GetByIdAsync(id, cancellationToken);
         return node is null ? Results.NotFound() : Results.Ok(MicrogridNodeResponse.FromEntity(node));
+    }
+
+    // prosumer self-service: browse Active nodes only, to pick one when submitting a reservation
+    // request - any client-supplied status filter is ignored in favor of a forced Active filter,
+    // reusing the same IMicrogridNodeService.ListAsync staff browsing already calls
+    private static async Task<IResult> ListNodesForProsumerAsync(
+        IMicrogridNodeService nodeService,
+        CancellationToken cancellationToken,
+        string? search = null,
+        int page = 1,
+        int pageSize = 20,
+        string? sortBy = null,
+        string? sortDir = null)
+    {
+        var (items, totalCount) = await nodeService.ListAsync(
+            search, MicrogridNodeStatus.Active, page, pageSize, sortBy, sortDir, cancellationToken);
+
+        var response = new PagedResult<MicrogridNodeResponse>(
+            items.Select(MicrogridNodeResponse.FromEntity).ToList(), totalCount, Math.Max(page, 1), pageSize);
+        return Results.Ok(response);
+    }
+
+    // prosumer self-service: fetch a single node, but only if it's Active - a Deactivated node
+    // stays invisible to prosumer browsing even though its name still legitimately appears via
+    // ReservationResponse.NodeName on an existing reservation against it
+    private static async Task<IResult> GetNodeForProsumerAsync(
+        string id,
+        IMicrogridNodeService nodeService,
+        CancellationToken cancellationToken)
+    {
+        var node = await nodeService.GetByIdAsync(id, cancellationToken);
+        return node is null || node.Status != MicrogridNodeStatus.Active
+            ? Results.NotFound()
+            : Results.Ok(MicrogridNodeResponse.FromEntity(node));
     }
 
     // replace a node's weekly operating-hours schedule

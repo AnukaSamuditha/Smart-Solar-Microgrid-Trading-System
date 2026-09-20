@@ -4,6 +4,7 @@
 // cookies via ICookieAuthService, alongside the JSON-body/bearer response the mobile app
 // uses — see docs/authentication-implementation-approach.md, sections 6 and 12.
 
+using smart_solar_mgt_api.Authorization;
 using smart_solar_mgt_api.Models.Dtos;
 using smart_solar_mgt_api.Models.Enums;
 using smart_solar_mgt_api.Services.Auth;
@@ -20,6 +21,7 @@ public static class AuthEndpoints
         var group = app.MapGroup("/api/v1/auth").WithTags("Auth");
 
         group.MapPost("/login", LoginAsync);
+        group.MapPost("/prosumer/login", ProsumerLoginAsync);
         group.MapPost("/refresh", RefreshAsync);
         group.MapPost("/logout", LogoutAsync);
         group.MapPost("/accept-invitation", AcceptInvitationAsync);
@@ -81,12 +83,71 @@ public static class AuthEndpoints
         return Results.Ok(new LoginResponse(accessToken, accessTokenExpiresAtUtc, refreshToken, refreshTokenExpiresAtUtc, user.Role.ToString()));
     }
 
+    // authenticate a prosumer by NIC-or-email/password (mobile-only; no cookies - see LoginAsync
+    // for why staff/prosumer login are separate endpoints) and issue an access + refresh token pair
+    private static async Task<IResult> ProsumerLoginAsync(
+        HttpContext httpContext,
+        ProsumerLoginRequest request,
+        IProsumerService prosumerService,
+        IPasswordHasherService passwordHasher,
+        IJwtTokenService jwtTokenService,
+        IRefreshTokenService refreshTokenService,
+        ICookieAuthService cookieAuthService,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.NicOrEmail) || string.IsNullOrWhiteSpace(request.Password))
+        {
+            return Results.BadRequest(new { error = "NicOrEmailAndPasswordRequired" });
+        }
+
+        var identifier = request.NicOrEmail.Trim();
+        var prosumer = await prosumerService.GetByNicAsync(identifier, cancellationToken)
+                       ?? await prosumerService.GetByEmailAsync(identifier, cancellationToken);
+        if (prosumer is null)
+        {
+            return Results.Json(new { error = "InvalidCredentials" }, statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        switch (prosumer.Status)
+        {
+            case ProsumerStatus.PendingApproval:
+                return Results.Json(new { error = "PendingApproval" }, statusCode: StatusCodes.Status401Unauthorized);
+            case ProsumerStatus.Rejected:
+                return Results.Json(new { error = "AccountCreationDenied" }, statusCode: StatusCodes.Status401Unauthorized);
+            case ProsumerStatus.Deactivated:
+                return Results.Json(new { error = "AccountDeactivated" }, statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        // Invited (staff-created awaiting web accept-invitation, or approved awaiting mobile
+        // reset-password) - no hash to check yet, so this must be caught before VerifyPassword
+        if (prosumer.PasswordHash is null)
+        {
+            return Results.Json(new { error = "PasswordNotSet" }, statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        if (!passwordHasher.VerifyPassword(prosumer.PasswordHash, request.Password))
+        {
+            return Results.Json(new { error = "InvalidCredentials" }, statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        var (accessToken, accessTokenExpiresAtUtc) = jwtTokenService.GenerateAccessToken(prosumer);
+        var (refreshToken, refreshTokenExpiresAtUtc) = await refreshTokenService.IssueAsync(
+            prosumer.Nic, InvitationAccountType.Prosumer, cancellationToken: cancellationToken);
+
+        cookieAuthService.AppendAuthCookies(httpContext, accessToken, accessTokenExpiresAtUtc, refreshToken, refreshTokenExpiresAtUtc);
+
+        return Results.Ok(new LoginResponse(accessToken, accessTokenExpiresAtUtc, refreshToken, refreshTokenExpiresAtUtc, RoleNames.Prosumer));
+    }
+
     // rotate a refresh token and issue a new access token, rejecting expired, unknown, or reused tokens; the
-    // presented token comes from the JSON body (mobile/bearer) or, if absent, the refresh_token cookie (web)
+    // presented token comes from the JSON body (mobile/bearer) or, if absent, the refresh_token cookie (web).
+    // Shared by both account types (result.AccountType) since the token/rotation record itself doesn't
+    // distinguish which client is calling - see RefreshToken.AccountType and IRefreshTokenService.
     private static async Task<IResult> RefreshAsync(
         HttpContext httpContext,
         RefreshRequest? request,
         IUserService userService,
+        IProsumerService prosumerService,
         IJwtTokenService jwtTokenService,
         IRefreshTokenService refreshTokenService,
         ICookieAuthService cookieAuthService,
@@ -104,13 +165,32 @@ public static class AuthEndpoints
             return Results.Unauthorized();
         }
 
-        var user = await userService.GetByIdAsync(result.UserId, cancellationToken);
-        if (user is null || user.Status != UserStatus.Active)
-        {
-            return Results.Unauthorized();
-        }
+        string accessToken;
+        DateTime accessTokenExpiresAtUtc;
+        string role;
 
-        var (accessToken, accessTokenExpiresAtUtc) = jwtTokenService.GenerateAccessToken(user);
+        if (result.AccountType == InvitationAccountType.Prosumer)
+        {
+            var prosumer = await prosumerService.GetByNicAsync(result.UserId, cancellationToken);
+            if (prosumer is null || prosumer.Status != ProsumerStatus.Active)
+            {
+                return Results.Unauthorized();
+            }
+
+            (accessToken, accessTokenExpiresAtUtc) = jwtTokenService.GenerateAccessToken(prosumer);
+            role = RoleNames.Prosumer;
+        }
+        else
+        {
+            var user = await userService.GetByIdAsync(result.UserId, cancellationToken);
+            if (user is null || user.Status != UserStatus.Active)
+            {
+                return Results.Unauthorized();
+            }
+
+            (accessToken, accessTokenExpiresAtUtc) = jwtTokenService.GenerateAccessToken(user);
+            role = user.Role.ToString();
+        }
 
         cookieAuthService.AppendAuthCookies(
             httpContext, accessToken, accessTokenExpiresAtUtc, result.NewRefreshToken, result.NewRefreshTokenExpiresAtUtc.Value);
@@ -120,7 +200,7 @@ public static class AuthEndpoints
             accessTokenExpiresAtUtc,
             result.NewRefreshToken,
             result.NewRefreshTokenExpiresAtUtc.Value,
-            user.Role.ToString()));
+            role));
     }
 
     // revoke the presented refresh token on logout and clear the web auth cookies regardless of how it was presented

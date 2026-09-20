@@ -7,7 +7,7 @@ import com.example.smart_solar_mgt_app.core.common.SyncStatus
 data class BookingListItem(
     val bookingId: String,
     val prosumerNic: String,
-    val stationId: String,
+    val nodeId: String,
     val stationName: String,
     val bookingDate: String,
     val bookingTime: String,

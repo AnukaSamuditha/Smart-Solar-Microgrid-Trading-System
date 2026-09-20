@@ -7,5 +7,6 @@ class SmartSolarApp : Application() {
     override fun onCreate() {
         super.onCreate()
         ServiceLocator.init(this)
+        ServiceLocator.syncManager.schedulePeriodicSync()
     }
 }

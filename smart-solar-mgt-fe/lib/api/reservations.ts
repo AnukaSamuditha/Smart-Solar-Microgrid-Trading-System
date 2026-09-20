@@ -1,6 +1,9 @@
 import { apiClient } from "@/providers/api-client"
 
-export type ReservationStatus = "Confirmed" | "Cancelled"
+// Pending/Rejected only ever occur for a prosumer-submitted request (mobile app self-service) -
+// a staff-created reservation (POST /api/v1/reservations below) goes straight to Confirmed.
+// Completed is set by the QR transaction finalize flow, never directly from this dashboard.
+export type ReservationStatus = "Pending" | "Confirmed" | "Rejected" | "Cancelled" | "Completed"
 
 export interface Reservation {
   id: string
@@ -11,7 +14,9 @@ export interface Reservation {
   slotId: string
   startTime: string
   endTime: string
+  energyAmount: number | null
   status: ReservationStatus
+  rejectionReason: string | null
   createdAt: string
   updatedAt: string | null
 }
@@ -86,4 +91,22 @@ export async function updateReservation({
 // (Backoffice or Grid Operator)
 export async function cancelReservation(id: string): Promise<void> {
   await apiClient.patch(`/api/v1/reservations/${id}/cancel`)
+}
+
+// approves a Pending prosumer-submitted request: moves it to Confirmed and marks the node's
+// battery slot Reserved, after re-verifying the slot is still free (Backoffice or Grid Operator)
+export async function approveReservation(id: string): Promise<Reservation> {
+  const { data } = await apiClient.patch<Reservation>(`/api/v1/reservations/${id}/approve`)
+  return data
+}
+
+export interface RejectReservationPayload {
+  id: string
+  reason?: string
+}
+
+// rejects a Pending prosumer-submitted request; terminal - the prosumer would need to submit a
+// new request (Backoffice or Grid Operator)
+export async function rejectReservation({ id, reason }: RejectReservationPayload): Promise<void> {
+  await apiClient.patch(`/api/v1/reservations/${id}/reject`, { reason })
 }

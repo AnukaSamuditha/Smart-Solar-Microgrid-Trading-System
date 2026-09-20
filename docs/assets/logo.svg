@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" width="360" height="96" role="img" aria-label="Wattex logo">
+  <defs>
+    <linearGradient id="badge-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F4FFAE" />
+      <stop offset="22%" stop-color="#E9FC77" />
+      <stop offset="44%" stop-color="#DCF64A" />
+      <stop offset="64%" stop-color="#CBEA26" />
+      <stop offset="82%" stop-color="#B7D617" />
+      <stop offset="100%" stop-color="#A6C40E" />
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="4" width="88" height="88" rx="18" fill="url(#badge-gradient)" />
+  <path
+    d="M52.4 21L27.6 52.7H42.5L38.9 79L63.7 47.2H48.9L52.4 21Z"
+    fill="#10130D"
+  />
+
+  <text x="108" y="60" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="42" font-weight="700" letter-spacing="-1" fill="#10130D">Wattex</text>
+</svg>

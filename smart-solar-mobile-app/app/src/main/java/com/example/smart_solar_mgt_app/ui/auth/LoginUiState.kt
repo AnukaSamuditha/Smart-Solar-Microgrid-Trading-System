@@ -10,4 +10,9 @@ sealed class LoginUiState {
     data class FieldError(val field: LoginField, val message: String) : LoginUiState()
     data class FormError(val message: String) : LoginUiState()
     data class Success(val role: Role) : LoginUiState()
+
+    // remote-prosumer-login-only terminal outcomes, each routed to its own screen by LoginActivity
+    data object PendingApproval : LoginUiState()
+    data object AccountCreationDenied : LoginUiState()
+    data object PasswordNotSet : LoginUiState()
 }

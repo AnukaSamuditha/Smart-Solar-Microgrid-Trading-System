@@ -53,7 +53,14 @@ export function ProsumersTable({ prosumers }: { prosumers: ProsumerListItem[] })
                 </div>
               </TableCell>
               <TableCell>
-                <ProsumerStatusBadge status={prosumer.status} />
+                <div className="flex flex-col gap-1">
+                  <ProsumerStatusBadge status={prosumer.status} />
+                  {prosumer.status === "Rejected" && prosumer.rejectionReason && (
+                    <span className="text-xs text-muted-foreground">
+                      {prosumer.rejectionReason}
+                    </span>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatDate(prosumer.createdAt)}

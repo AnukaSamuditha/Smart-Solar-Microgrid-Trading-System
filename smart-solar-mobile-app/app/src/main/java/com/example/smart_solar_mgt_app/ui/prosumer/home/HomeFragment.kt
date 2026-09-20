@@ -28,7 +28,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             initializer {
                 HomeViewModel(
                     ServiceLocator.bookingRepository,
-                    ServiceLocator.stationRepository,
+                    ServiceLocator.nodeRepository,
                     ServiceLocator.securityManager,
                     ServiceLocator.authRepository
                 )
@@ -114,6 +114,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         BookingStatus.APPROVED -> Color.parseColor("#2E7D32")
         BookingStatus.COMPLETED -> Color.parseColor("#1565C0")
         BookingStatus.CANCELLED -> Color.parseColor("#C62828")
+        BookingStatus.REJECTED -> Color.parseColor("#E65100")
         BookingStatus.EXPIRED -> Color.parseColor("#757575")
     }
 }

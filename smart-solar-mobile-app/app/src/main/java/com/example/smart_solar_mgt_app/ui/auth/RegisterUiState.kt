@@ -6,6 +6,6 @@ sealed class RegisterUiState {
     data class FieldErrors(val errors: Map<RegisterField, String>) : RegisterUiState()
     data class FormError(val message: String) : RegisterUiState()
 
-    /** Account created as PENDING_APPROVAL - no session was started. */
-    data object PendingActivation : RegisterUiState()
+    /** Queued as PendingApproval (see LocalDbManager.registerProsumerLocally) - no session was started. */
+    data class PendingActivation(val nic: String, val email: String) : RegisterUiState()
 }

@@ -17,6 +17,18 @@ public interface IProsumerService
         string createdByUserId,
         CancellationToken cancellationToken = default);
 
+    Task<ProsumerCreateResult> RegisterAsync(
+        string nic,
+        string email,
+        string? fullName,
+        string? phone,
+        string? address,
+        CancellationToken cancellationToken = default);
+
+    Task<ProsumerReviewResult> ApproveAsync(string nic, string performedByUserId, CancellationToken cancellationToken = default);
+
+    Task<ProsumerReviewResult> DenyAsync(string nic, string performedByUserId, string? reason, CancellationToken cancellationToken = default);
+
     Task<Prosumer?> GetByNicAsync(string nic, CancellationToken cancellationToken = default);
 
     Task<Prosumer?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
@@ -56,4 +68,11 @@ public enum ProsumerCreateResult
     Succeeded,
     NicConflict,
     EmailConflict
+}
+
+public enum ProsumerReviewResult
+{
+    Succeeded,
+    NotFound,
+    NotPendingApproval
 }

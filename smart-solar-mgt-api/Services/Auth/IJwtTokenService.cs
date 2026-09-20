@@ -8,4 +8,6 @@ namespace smart_solar_mgt_api.Services.Auth;
 public interface IJwtTokenService
 {
     (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(User user);
+
+    (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(Prosumer prosumer);
 }

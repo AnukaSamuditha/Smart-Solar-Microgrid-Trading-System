@@ -27,9 +27,9 @@ class QrPassFragment : Fragment(R.layout.fragment_qr_pass) {
         viewModelFactory {
             initializer {
                 QrPassViewModel(
-                    ServiceLocator.transactionRepository,
+                    ServiceLocator.remoteTransactionRepository,
                     ServiceLocator.bookingRepository,
-                    ServiceLocator.stationRepository,
+                    ServiceLocator.nodeRepository,
                     ServiceLocator.securityManager
                 )
             }

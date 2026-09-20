@@ -6,7 +6,9 @@ data class User(
     val email: String,
     val phone: String?,
     val address: String?,
-    val passwordHash: String,
+    // null for a self-registered prosumer still awaiting review/password reset - see
+    // SecurityManagerImpl.login, which always defers such a row to the remote login endpoint
+    val passwordHash: String?,
     val role: Role,
     val accountStatus: AccountStatus
 )
