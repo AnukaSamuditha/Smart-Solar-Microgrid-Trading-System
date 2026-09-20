@@ -15,6 +15,7 @@ using smart_solar_mgt_api.Configuration;
 using smart_solar_mgt_api.Data;
 using smart_solar_mgt_api.Endpoints;
 using smart_solar_mgt_api.Services.Auth;
+using smart_solar_mgt_api.Services.Dashboard;
 using smart_solar_mgt_api.Services.Email;
 using smart_solar_mgt_api.Services.Nodes;
 using smart_solar_mgt_api.Services.Prosumers;
@@ -52,6 +53,7 @@ builder.Services.AddScoped<IProsumerService, ProsumerService>();
 builder.Services.AddScoped<IReservationLookupService, ReservationLookupService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IMicrogridNodeService, MicrogridNodeService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<SuperAdminSeeder>();
 
@@ -128,7 +130,8 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(RoleNames.Backoffice, policy => policy.RequireRole(RoleNames.Backoffice))
     .AddPolicy("ProsumerManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator))
     .AddPolicy("NodeBatterySlotManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator))
-    .AddPolicy("ReservationManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator));
+    .AddPolicy("ReservationManagement", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator))
+    .AddPolicy("DashboardAccess", policy => policy.RequireRole(RoleNames.Backoffice, RoleNames.GridOperator));
 
 var app = builder.Build();
 
@@ -166,6 +169,7 @@ app.MapUserEndpoints();
 app.MapProsumerEndpoints();
 app.MapMicrogridNodeEndpoints();
 app.MapReservationEndpoints();
+app.MapDashboardEndpoints();
 
 app.Run();
 

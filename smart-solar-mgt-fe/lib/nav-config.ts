@@ -5,7 +5,6 @@ import {
   HomeIcon,
   MapPinIcon,
   RadioIcon,
-  SettingsIcon,
   ShieldUserIcon,
   UsersIcon,
   type LucideIcon,
@@ -72,7 +71,6 @@ export const mainNav: NavEntry[] = [
   },
   { title: "Battery Slots", href: "/battery-slots", icon: BatteryChargingIcon },
   { title: "User Management", href: "/users", icon: ShieldUserIcon, roles: ["Backoffice"] },
-  { title: "Settings", href: "/settings", icon: SettingsIcon },
 ]
 
 function flattenLinks(entries: NavEntry[]): NavLink[] {

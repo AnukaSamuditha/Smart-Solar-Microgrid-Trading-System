@@ -87,5 +87,20 @@ public class MongoContext
         var reservationProsumerIndex = new CreateIndexModel<Reservation>(
             Builders<Reservation>.IndexKeys.Ascending(r => r.ProsumerNic));
         await Reservations.Indexes.CreateOneAsync(reservationProsumerIndex, cancellationToken: cancellationToken);
+
+        // serves DashboardService's recent-activity feed (sort by CreatedAt desc)
+        var reservationCreatedAtIndex = new CreateIndexModel<Reservation>(
+            Builders<Reservation>.IndexKeys.Descending(r => r.CreatedAt));
+        await Reservations.Indexes.CreateOneAsync(reservationCreatedAtIndex, cancellationToken: cancellationToken);
+
+        // serves DashboardService's recent-activity feed (sort by CreatedAt desc)
+        var nodeCreatedAtIndex = new CreateIndexModel<MicrogridNode>(
+            Builders<MicrogridNode>.IndexKeys.Descending(n => n.CreatedAt));
+        await MicrogridNodes.Indexes.CreateOneAsync(nodeCreatedAtIndex, cancellationToken: cancellationToken);
+
+        // serves DashboardService's recent-activity feed (sort by CreatedAt desc)
+        var prosumerCreatedAtIndex = new CreateIndexModel<Prosumer>(
+            Builders<Prosumer>.IndexKeys.Descending(p => p.CreatedAt));
+        await Prosumers.Indexes.CreateOneAsync(prosumerCreatedAtIndex, cancellationToken: cancellationToken);
     }
 }
