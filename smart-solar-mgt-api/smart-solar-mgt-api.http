@@ -298,3 +298,17 @@ PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/{{reservationId}}/
 Authorization: Bearer {{accessToken}}
 
 ###
+
+### Dashboard summary: node/battery-slot/today's-reservation-dispatch/prosumer counts
+# (Backoffice or Grid Operator)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/dashboard/summary
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Dashboard recent activity: merged feed of recent node/prosumer/reservation creations, default
+# 10 items (Backoffice or Grid Operator)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/dashboard/recent-activity?limit=10
+Authorization: Bearer {{accessToken}}
+
+###
