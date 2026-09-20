@@ -17,12 +17,15 @@
     <dimen name="spacing_small_gap">8dp</dimen>
 
     <!-- Typography -->
-    <dimen name="text_screen_title">24sp</dimen>
+    <dimen name="text_screen_title">20sp</dimen>
     <dimen name="text_section_title">18sp</dimen>
     <dimen name="text_card_value">24sp</dimen>
     <dimen name="text_card_title">13sp</dimen>
     <dimen name="text_body">15sp</dimen>
     <dimen name="text_metadata">12sp</dimen>
+    <dimen name="text_input">12sp</dimen>
+    <dimen name="text_input_hint_floating">10sp</dimen>
+    <dimen name="text_dialog_title">12sp</dimen>
 
     <dimen name="icon_size_small">32dp</dimen>
     <dimen name="icon_size_medium">28dp</dimen>

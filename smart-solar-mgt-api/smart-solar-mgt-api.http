@@ -6,6 +6,8 @@
 @prosumerNic = 200012345678
 @nodeId = REPLACE_WITH_NODE_ID
 @reservationId = REPLACE_WITH_RESERVATION_ID
+@transactionToken = REPLACE_WITH_TRANSACTION_TOKEN
+@transactionId = REPLACE_WITH_TRANSACTION_ID
 
 ### Login (use the seeded super-admin credentials, or any Active account)
 # 401 error codes on failure: InvalidCredentials (unknown email or wrong password),
@@ -22,7 +24,22 @@ Content-Type: application/json
 
 ###
 
-### Refresh (rotates the presented refresh token)
+### Prosumer login (mobile-only; NicOrEmail accepts either identifier)
+# 401 error codes on failure: InvalidCredentials, PendingApproval (self-registration awaiting
+# review), AccountCreationDenied (denied), AccountDeactivated, PasswordNotSet (Invited - either
+# staff-created awaiting the web accept-invitation flow, or approved awaiting the mobile
+# reset-password flow via the same POST /api/v1/auth/accept-invitation endpoint)
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/auth/prosumer/login
+Content-Type: application/json
+
+{
+  "nicOrEmail": "{{prosumerNic}}",
+  "password": "ChangeMe123!"
+}
+
+###
+
+### Refresh (rotates the presented refresh token; works for both staff and prosumer tokens)
 POST {{smart_solar_mgt_api_HostAddress}}/api/v1/auth/refresh
 Content-Type: application/json
 
@@ -138,9 +155,50 @@ Content-Type: application/json
 
 ###
 
+### Self-register a prosumer profile from the mobile app (public - no auth). No password: the
+# profile starts PendingApproval and awaits a Backoffice/Grid Operator reviewer (see approve/deny
+# below); the prosumer sets a password afterwards via POST /api/v1/auth/accept-invitation, using
+# the code emailed on approval
+# 400 error codes: InvalidNic, ValidEmailRequired
+# 409 error codes: NicAlreadyInUse, EmailAlreadyInUse
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers/register
+Content-Type: application/json
+
+{
+  "nic": "{{prosumerNic}}",
+  "email": "new.prosumer@example.com",
+  "fullName": "New Prosumer",
+  "phone": "+94771234567",
+  "address": "123 Galle Road, Colombo"
+}
+
+###
+
 ### List prosumers with backend search, status filter, and pagination (Backoffice or Grid Operator)
+# use status=PendingApproval to list self-registration requests awaiting review
 GET {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers?search=prosumer&status=Active&page=1&pageSize=20&sortBy=CreatedAt&sortDir=desc
 Authorization: Bearer {{accessToken}}
+
+###
+
+### Approve a self-registered prosumer's PendingApproval request (Backoffice or Grid Operator);
+# moves it to Invited and emails a reset-password code for the mobile app (not a web link)
+# 409 error codes: NotPendingApproval
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers/{{prosumerNic}}/approve
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Deny a self-registered prosumer's PendingApproval request, optionally with a reason
+# (Backoffice or Grid Operator); terminal - moves it to Rejected
+# 409 error codes: NotPendingApproval
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/prosumers/{{prosumerNic}}/deny
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "NIC details could not be verified"
+}
 
 ###
 
@@ -201,6 +259,21 @@ Authorization: Bearer {{accessToken}}
 
 ###
 
+### Prosumer self-service: browse Active nodes only (Prosumer role; use a prosumer's own access
+# token from POST /api/v1/auth/prosumer/login) - to pick a node/slot when submitting a reservation
+# request (see POST /api/v1/reservations/mine)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/mine?page=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Prosumer self-service: get a single Active node (Prosumer role); 404 if it doesn't exist or
+# is Deactivated
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/mine/{{nodeId}}
+Authorization: Bearer {{accessToken}}
+
+###
+
 ### Update a node's weekly operating-hours schedule (Backoffice-only)
 # 400 error codes: OpenAndCloseTimeRequiredWhenNotClosed, OpenTimeMustBeBeforeCloseTime
 PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/nodes/{{nodeId}}/schedule
@@ -243,9 +316,9 @@ Authorization: Bearer {{accessToken}}
 ###
 
 ### Create an energy slot reservation (Backoffice or Grid Operator; staff-assisted booking on the
-# prosumer's behalf — there is no prosumer authentication in this codebase yet). startTime must be
-# in the future and no more than 7 days out (spec section 3.4); the target slot must have no other
-# Confirmed, not-yet-elapsed reservation against it.
+# prosumer's behalf, immediately Confirmed - see POST /mine below for prosumer self-service, which
+# starts Pending instead). startTime must be in the future and no more than 7 days out (spec
+# section 3.4); the target slot must have no other Confirmed, not-yet-elapsed reservation against it.
 # 400 error codes: InvalidNic, NodeIdRequired, SlotIdRequired, StartTimeMustBeBeforeEndTime,
 # ReservationMustBeInFuture, ReservationMustBeWithinSevenDays
 # 404 error codes: ProsumerNotFound, NodeNotFound, SlotNotFound
@@ -264,7 +337,8 @@ Content-Type: application/json
 
 ###
 
-### List reservations with backend filters and pagination (Backoffice or Grid Operator)
+### List reservations with backend filters and pagination (Backoffice or Grid Operator);
+# use status=Pending to list prosumer-submitted requests awaiting review (see approve/reject below)
 GET {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations?status=Confirmed&page=1&pageSize=20&sortBy=StartTime&sortDir=asc
 Authorization: Bearer {{accessToken}}
 
@@ -295,6 +369,120 @@ Content-Type: application/json
 # the reservation's current start time
 # 409 error codes: AlreadyCancelled, AlreadyStarted, InsufficientNotice
 PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/{{reservationId}}/cancel
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Approve a Pending prosumer-submitted reservation request (Backoffice or Grid Operator); moves
+# it to Confirmed and marks the node's slot Reserved, after re-checking the slot is still free
+# 409 error codes: NotPending, SlotNoLongerAvailable
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/{{reservationId}}/approve
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Reject a Pending prosumer-submitted reservation request, optionally with a reason
+# (Backoffice or Grid Operator); terminal - moves it to Rejected
+# 409 error codes: NotPending
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/{{reservationId}}/reject
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Slot needed for scheduled maintenance"
+}
+
+###
+
+### Prosumer self-service: submit a reservation request (Prosumer role; use a prosumer's own
+# access token from POST /api/v1/auth/prosumer/login). Starts Pending - awaits a Backoffice/Grid
+# Operator reviewer above. Identity comes from the JWT, not the body.
+# 400 error codes: NodeIdRequired, SlotIdRequired, StartTimeMustBeBeforeEndTime,
+# ReservationMustBeInFuture, ReservationMustBeWithinSevenDays
+# 404 error codes: NodeNotFound, SlotNotFound
+# 409 error codes: ProsumerDeactivated, NodeDeactivated, SlotNotAvailable
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/mine
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nodeId": "{{nodeId}}",
+  "slotId": "1",
+  "startTime": "2026-09-22T09:00:00Z",
+  "endTime": "2026-09-22T11:00:00Z",
+  "energyAmount": 5.5
+}
+
+###
+
+### Prosumer self-service: list only the caller's own reservations (Prosumer role)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/mine?page=1&pageSize=20&sortBy=StartTime&sortDir=asc
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Prosumer self-service: get one of the caller's own reservations (Prosumer role)
+GET {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/mine/{{reservationId}}
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Prosumer self-service: reschedule one of the caller's own reservations (Prosumer role); same
+# 12-hour notice / 7-day window rules as the staff reschedule endpoint
+# 409 error codes: AlreadyCancelled, AlreadyStarted, InsufficientNotice
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/mine/{{reservationId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "startTime": "2026-09-23T09:00:00Z",
+  "endTime": "2026-09-23T11:00:00Z"
+}
+
+###
+
+### Prosumer self-service: cancel one of the caller's own reservations (Prosumer role)
+# 409 error codes: AlreadyCancelled, AlreadyStarted, InsufficientNotice
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/reservations/mine/{{reservationId}}/cancel
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Prosumer self-service: generate a QR Energy Transfer Pass for one of the caller's own
+# Confirmed reservations (Prosumer role). The response's "token" is the raw, one-time QR payload -
+# copy it into @transactionToken below to test scan/complete.
+# 404 error codes: ReservationNotFound
+# 409 error codes: ReservationNotConfirmed, ReservationWindowElapsed
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/transactions/generate
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reservationId": "{{reservationId}}"
+}
+
+###
+
+### Grid Operator scans a QR pass (Grid-Operator-only "TransactionFinalization" policy); returns
+# display-ready reservation/prosumer/slot details for a confirmation screen. The response's "id"
+# is the transaction id - copy it into @transactionId below to complete it.
+# 404 error codes: NotFound
+# 409 error codes: AlreadyUsed, Expired, ReservationNoLongerConfirmed
+POST {{smart_solar_mgt_api_HostAddress}}/api/v1/transactions/scan
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "token": "{{transactionToken}}"
+}
+
+###
+
+### Grid Operator finalizes a previously-scanned pass (Grid-Operator-only); moves the reservation
+# to Completed and releases the node's slot back to Available
+# 404 error codes: NotFound
+# 409 error codes: NotScanned
+PATCH {{smart_solar_mgt_api_HostAddress}}/api/v1/transactions/{{transactionId}}/complete
 Authorization: Bearer {{accessToken}}
 
 ###

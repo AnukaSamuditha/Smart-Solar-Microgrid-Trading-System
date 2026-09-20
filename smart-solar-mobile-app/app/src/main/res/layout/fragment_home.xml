@@ -32,20 +32,10 @@
                     android:orientation="vertical">
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="SOLAR PROSUMER"
-                        android:textColor="@color/solar_text_muted"
-                        android:textSize="12sp"
-                        android:letterSpacing="0.08"
-                        android:textStyle="bold" />
-
-                    <TextView
                         android:id="@+id/tvWelcome"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:textAppearance="@style/TextAppearance.App.ScreenTitle" />
+                        android:textAppearance="@style/TextAppearance.App.SectionTitle" />
                 </LinearLayout>
 
                 <FrameLayout

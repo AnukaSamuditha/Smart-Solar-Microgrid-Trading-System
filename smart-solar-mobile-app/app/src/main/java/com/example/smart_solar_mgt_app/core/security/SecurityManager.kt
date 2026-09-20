@@ -4,7 +4,7 @@ import com.example.smart_solar_mgt_app.domain.model.Role
 import com.example.smart_solar_mgt_app.domain.model.Session
 
 /**
- * The only class UI and other managers call for auth/session/role/QR-token concerns.
+ * The only class UI and other managers call for auth/session/role concerns.
  * Login flow: Login UI -> SecurityManager -> AuthRepository -> LocalDbManager -> SQLite.
  */
 interface SecurityManager {
@@ -16,9 +16,6 @@ interface SecurityManager {
     fun isLoggedIn(): Boolean
     fun hasRole(role: Role): Boolean
     fun requireRole(role: Role)
-
-    fun generateQrToken(transactionId: String, bookingId: String, ttlMillis: Long): String
-    fun validateQrToken(token: String): QrValidationResult
 
     fun storeApiToken(token: String)
     fun getApiToken(): String?

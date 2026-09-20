@@ -4,25 +4,30 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smart_solar_mgt_app.core.common.AppError
-import com.example.smart_solar_mgt_app.core.common.AppResult
+import com.example.smart_solar_mgt_app.core.network.RemoteTransactionGenerateOutcome
+import com.example.smart_solar_mgt_app.core.network.RemoteTransactionGenerateRejection
 import com.example.smart_solar_mgt_app.core.security.SecurityManager
 import com.example.smart_solar_mgt_app.data.repository.BookingRepository
-import com.example.smart_solar_mgt_app.data.repository.StationRepository
-import com.example.smart_solar_mgt_app.data.repository.TransactionRepository
+import com.example.smart_solar_mgt_app.data.repository.NodeRepository
+import com.example.smart_solar_mgt_app.data.repository.RemoteTransactionRepository
 import com.example.smart_solar_mgt_app.util.DateFormats
 import com.example.smart_solar_mgt_app.util.QrBitmapEncoder
-import com.example.smart_solar_mgt_app.util.TransactionRules
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.Instant
 import java.time.ZoneId
 
+/**
+ * Generates a fresh QR Energy Transfer Pass on-demand from the backend (POST
+ * /api/v1/transactions/generate) each time this screen is opened, rather than reading a
+ * once-signed local token - see RemoteTransactionRepository/TransactionService.GenerateAsync for
+ * why generation is always-fresh (an opaque server-issued token, not a client-verifiable
+ * signature) rather than idempotent.
+ */
 class QrPassViewModel(
-    private val transactionRepository: TransactionRepository,
+    private val remoteTransactionRepository: RemoteTransactionRepository,
     private val bookingRepository: BookingRepository,
-    private val stationRepository: StationRepository,
+    private val nodeRepository: NodeRepository,
     private val securityManager: SecurityManager
 ) : ViewModel() {
 
@@ -43,37 +48,38 @@ class QrPassViewModel(
     }
 
     private fun buildState(bookingId: String, nic: String): QrPassUiState {
-        return when (val result = transactionRepository.getEnergyTransferPass(bookingId, nic)) {
-            is AppResult.Success -> {
-                val transaction = result.data
-                val booking = bookingRepository.getBookingById(bookingId)
-                val stationName = booking?.let { stationRepository.getStationById(it.stationId)?.stationName }
-                    ?: "Unknown station"
-                val expiryLabel = Instant.ofEpochMilli(TransactionRules.expiryMillis(transaction.generatedAt))
-                    .atZone(ZoneId.systemDefault())
+        val booking = bookingRepository.getBookingById(bookingId)
+            ?: return QrPassUiState.Error("This reservation is no longer available.")
+        if (booking.prosumerNic != nic) {
+            return QrPassUiState.Error("This reservation does not belong to your account.")
+        }
+
+        return when (val outcome = remoteTransactionRepository.generate(bookingId)) {
+            is RemoteTransactionGenerateOutcome.Success -> {
+                val stationName = nodeRepository.getNodeById(booking.nodeId)?.name ?: "Unknown station"
+                val expiryLabel = outcome.expiresAt.atZone(ZoneId.systemDefault())
                     .format(DateFormats.DISPLAY_DATE_TIME_FORMATTER)
 
                 QrPassUiState.Loaded(
-                    qrBitmap = QrBitmapEncoder.encode(transaction.qrToken, QR_SIZE_PX),
+                    qrBitmap = QrBitmapEncoder.encode(outcome.token, QR_SIZE_PX),
                     stationName = stationName,
-                    dateLabel = booking?.bookingDate.orEmpty(),
-                    timeLabel = booking?.bookingTime.orEmpty(),
-                    energyAmount = booking?.energyAmount ?: 0.0,
-                    transactionId = transaction.transactionId,
+                    dateLabel = booking.bookingDate,
+                    timeLabel = booking.bookingTime,
+                    energyAmount = booking.energyAmount,
+                    transactionId = outcome.transactionId,
                     expiryLabel = expiryLabel
                 )
             }
-            is AppResult.Failure -> QrPassUiState.Error(messageFor(result.error))
+            is RemoteTransactionGenerateOutcome.Rejected -> QrPassUiState.Error(messageFor(outcome.reason))
+            is RemoteTransactionGenerateOutcome.NetworkFailure -> QrPassUiState.Error(outcome.message)
         }
     }
 
-    private fun messageFor(error: AppError): String = when (error) {
-        AppError.NotFound -> "No active Energy Transfer Pass was found for this reservation."
-        AppError.Unauthorized -> "This reservation does not belong to your account."
-        AppError.InvalidStatusTransition -> "This reservation has not been approved yet."
-        AppError.TooLateToModify -> "This reservation can no longer be modified."
-        is AppError.Unknown -> error.message
-        else -> "Could not load the Energy Transfer Pass. Please try again."
+    private fun messageFor(reason: RemoteTransactionGenerateRejection): String = when (reason) {
+        RemoteTransactionGenerateRejection.RESERVATION_NOT_FOUND -> "No active Energy Transfer Pass was found for this reservation."
+        RemoteTransactionGenerateRejection.RESERVATION_NOT_CONFIRMED -> "This reservation has not been approved yet."
+        RemoteTransactionGenerateRejection.RESERVATION_WINDOW_ELAPSED -> "This reservation's time window has already passed."
+        RemoteTransactionGenerateRejection.UNKNOWN -> "Could not load the Energy Transfer Pass. Please try again."
     }
 
     private companion object {

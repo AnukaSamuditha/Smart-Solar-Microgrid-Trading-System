@@ -53,6 +53,19 @@ dotnet run --launch-profile https  # https://localhost:7260
 dotnet watch run                   # auto-restart on file changes
 ```
 
+### Reachable from the mobile app / a physical device
+
+The launch profiles above bind to `localhost` only (loopback) — a phone on the same network
+can't reach that. To test against a physical Android device (or the emulator via its host-loopback
+alias), bind to all interfaces instead:
+
+```bash
+dotnet run --urls http://0.0.0.0:5011
+```
+
+Then point the mobile app at your machine's LAN IP (`local.properties`' `API_BASE_URL`, e.g.
+`http://192.168.1.23:5011`) and make sure a local firewall isn't blocking inbound port `5011`.
+
 ## 6. Run tests
 
 ```bash
@@ -103,3 +116,4 @@ Manual request examples: `smart-solar-mgt-api.http`.
 - **CORS error in browser**: add the frontend origin to `Cors:AllowedOrigins`.
 - **403 `CsrfValidationFailed`**: web client is missing the `X-XSRF-TOKEN` header on a mutating request.
 - **Mongo connection refused**: confirm `docker compose -f docker-compose.local.yml up -d` is running.
+- **Mobile app says "Can't reach the server"**: the default launch profiles bind to `localhost` only, which a phone can't reach — run with `dotnet run --urls http://0.0.0.0:5011` instead (see "Reachable from the mobile app" above), and confirm `local.properties`' `API_BASE_URL` on the mobile side points at your machine's actual LAN IP, not `localhost`.

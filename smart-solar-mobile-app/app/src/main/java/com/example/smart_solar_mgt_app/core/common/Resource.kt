@@ -14,7 +14,7 @@ sealed class AppResult<out T> {
 /**
  * Kept intentionally generic (no domain.model references) so core.common never depends
  * upward on domain - security-specific outcomes live in their own sealed types instead
- * (see LoginResult, QrValidationResult in core.security).
+ * (see LoginResult in core.security).
  */
 sealed class AppError {
     data object NotFound : AppError()

@@ -66,6 +66,6 @@ class OperatorBookingsViewModel(
     private fun matchesScope(item: BookingListItem, scope: BookingScope): Boolean = when (scope) {
         BookingScope.CURRENT -> item.status == BookingStatus.APPROVED
         BookingScope.PENDING -> item.status == BookingStatus.PENDING
-        BookingScope.HISTORY -> item.status in setOf(BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.EXPIRED)
+        BookingScope.HISTORY -> item.status in setOf(BookingStatus.COMPLETED, BookingStatus.CANCELLED, BookingStatus.REJECTED, BookingStatus.EXPIRED)
     }
 }

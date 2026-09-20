@@ -38,10 +38,27 @@ JWT authentication and Backoffice/Grid Operator account management have been imp
 (login/refresh/logout, invitation-based account setup, RBAC, a manually-triggered super-admin
 seed command). `MongoDB.Driver`, `Microsoft.AspNetCore.Authentication.JwtBearer`, and `MailKit`
 are wired up; `smart-solar-mgt-api.sln` ties this project together with the sibling
-`smart-solar-mgt-api.Tests` (xUnit) project. Solar Prosumer auth and a standalone password-reset
-endpoint are not yet built (see the approach doc's scope section) — the web frontend's
-"reset password" page is actually the invitation-acceptance flow (token + new password),
-matching `POST /api/v1/auth/accept-invitation`.
+`smart-solar-mgt-api.Tests` (xUnit) project. There is still no standalone password-reset
+endpoint (see the approach doc's scope section) — the web frontend's "reset password" page is
+actually the invitation-acceptance flow (token + new password), matching
+`POST /api/v1/auth/accept-invitation`.
+
+Prosumer profiles now have two creation paths into the same `Invited -> Active` shape
+(`Models/Enums/ProsumerStatus.cs`): staff-initiated (`POST /api/v1/prosumers`, unchanged) and
+mobile self-registration (`POST /api/v1/prosumers/register`, public, no password) which starts
+at `PendingApproval` and needs a Backoffice/Grid Operator reviewer to
+`PATCH /api/v1/prosumers/{nic}/approve` (moves to `Invited` and reuses the same invitation-token
+machinery, emailing a mobile-specific reset code via `ProsumerMobileApprovalEmailTemplate`
+instead of a web link) or `.../deny` (terminal `Rejected`, optional reason).
+
+Prosumer authentication now exists too: `POST /api/v1/auth/prosumer/login` (NIC or email +
+password, mobile-only, no cookies) issues the same `LoginResponse`-shaped JWT bearer pair as
+staff login, with role `Prosumer`. `RefreshToken` now carries an `AccountType`
+(`Models/Enums/InvitationAccountType.cs`, reused from `Invitation`) so `POST /api/v1/auth/refresh`
+can rotate tokens for either account type — `JwtTokenService.GenerateAccessToken` has a
+`Prosumer` overload alongside the existing `User` one. No prosumer-facing protected endpoints
+exist yet (`RoleNames.Prosumer` isn't used in any authorization policy), so a prosumer JWT is
+today only good for proving who's logged in, not for calling any API beyond auth itself.
 
 The web frontend is now integrated directly against this API (no BFF layer) using HttpOnly
 cookies: `login`/`refresh` set `access_token` (Path `/`) and `refresh_token` (Path

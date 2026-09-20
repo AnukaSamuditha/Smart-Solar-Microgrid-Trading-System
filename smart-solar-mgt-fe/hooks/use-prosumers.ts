@@ -1,8 +1,10 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
+  approveProsumer,
   createProsumer,
   deactivateProsumer,
+  denyProsumer,
   listProsumers,
   reactivateProsumer,
   updateProsumer,
@@ -47,6 +49,22 @@ export function useReactivateProsumer() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: reactivateProsumer,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["prosumers"] }),
+  })
+}
+
+export function useApproveProsumer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: approveProsumer,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["prosumers"] }),
+  })
+}
+
+export function useDenyProsumer() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: denyProsumer,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["prosumers"] }),
   })
 }

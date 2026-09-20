@@ -3,23 +3,26 @@ package com.example.smart_solar_mgt_app.ui.prosumer.newbooking
 import java.time.LocalDate
 import java.time.LocalTime
 
-enum class BookingField { STATION, DATE, TIME, ENERGY_AMOUNT }
+enum class BookingField { STATION, SLOT, DATE, TIME, ENERGY_AMOUNT }
 
 object BookingValidator {
 
     data class Input(
-        val stationId: String?,
+        val nodeId: String?,
+        val slotId: String?,
         val date: LocalDate?,
         val time: LocalTime?,
         val energyAmountText: String
     )
 
-    /** Aggregates every field error at once. [stationCapacityKwh] is null if no station is resolved yet. */
-    fun validate(input: Input, stationCapacityKwh: Double?): Map<BookingField, String> {
+    /** Aggregates every field error at once. [nodeCapacityKw] is null if no node is resolved yet. */
+    fun validate(input: Input, nodeCapacityKw: Double?): Map<BookingField, String> {
         val errors = mutableMapOf<BookingField, String>()
 
-        if (input.stationId == null) {
+        if (input.nodeId == null) {
             errors[BookingField.STATION] = "Select a station"
+        } else if (input.slotId == null) {
+            errors[BookingField.SLOT] = "Select an available slot"
         }
 
         val today = LocalDate.now()
@@ -41,7 +44,7 @@ object BookingValidator {
             input.energyAmountText.isBlank() -> errors[BookingField.ENERGY_AMOUNT] = "Energy amount is required"
             energyAmount == null || energyAmount <= 0 ->
                 errors[BookingField.ENERGY_AMOUNT] = "Enter a valid energy amount"
-            stationCapacityKwh != null && energyAmount > stationCapacityKwh ->
+            nodeCapacityKw != null && energyAmount > nodeCapacityKw ->
                 errors[BookingField.ENERGY_AMOUNT] = "Energy amount exceeds this station's capacity"
         }
 

@@ -8,6 +8,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using smart_solar_mgt_api.Authorization;
 using smart_solar_mgt_api.Configuration;
 using smart_solar_mgt_api.Models.Entities;
 
@@ -22,16 +23,26 @@ public class JwtTokenService : IJwtTokenService
         _options = options.Value;
     }
 
-    // build and sign a short-lived JWT access token for the given user
-    public (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(User user)
+    // build and sign a short-lived JWT access token for the given staff user
+    public (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(User user) =>
+        GenerateAccessToken(user.Id, user.Email, user.Role.ToString());
+
+    // build and sign a short-lived JWT access token for the given prosumer (role claim is
+    // always RoleNames.Prosumer - no per-prosumer role variation, unlike staff Users)
+    public (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(Prosumer prosumer) =>
+        GenerateAccessToken(prosumer.Nic, prosumer.Email, RoleNames.Prosumer);
+
+    // shared claim-set/signing logic for both account types - sub/email/role/jti only, per the
+    // file-level purpose comment above
+    private (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(string subject, string email, string role)
     {
         var expiresAtUtc = DateTime.UtcNow.AddMinutes(_options.AccessTokenLifetimeMinutes);
 
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, subject),
+            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(ClaimTypes.Role, role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

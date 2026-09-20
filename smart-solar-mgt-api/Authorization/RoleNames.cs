@@ -10,4 +10,8 @@ public static class RoleNames
     public const string Backoffice = "Backoffice";
 
     public const string GridOperator = "GridOperator";
+
+    // not used as an authorization-policy name (no Prosumer-only endpoints exist yet) - only as
+    // the JWT role claim value issued by JwtTokenService.GenerateAccessToken(Prosumer)
+    public const string Prosumer = "Prosumer";
 }

@@ -51,9 +51,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   NodeNotFound: "That grid node no longer exists.",
   NodeDeactivated: "This grid node is deactivated and can't accept new reservations.",
   SlotNotAvailable: "That battery slot already has an active reservation.",
+  NotPendingApproval: "This request has already been reviewed.",
   AlreadyCancelled: "This reservation has already been cancelled.",
   AlreadyStarted: "This reservation's time slot has already started and can no longer be changed.",
   InsufficientNotice: "Changes and cancellations require at least 12 hours' notice.",
+  NotPending: "This reservation has already been reviewed.",
+  SlotNoLongerAvailable: "This slot was claimed by another reservation in the meantime.",
 }
 
 const FALLBACK_MESSAGE = "Something went wrong. Please try again."

@@ -8,6 +8,7 @@ using MongoDB.Driver;
 using smart_solar_mgt_api.Configuration;
 using smart_solar_mgt_api.Data;
 using smart_solar_mgt_api.Models.Entities;
+using smart_solar_mgt_api.Models.Enums;
 
 namespace smart_solar_mgt_api.Services.Auth;
 
@@ -25,6 +26,7 @@ public class RefreshTokenService : IRefreshTokenService
     // generate a new opaque refresh token, persist only its hash, and return the raw value to the caller
     public async Task<(string Token, DateTime ExpiresAtUtc)> IssueAsync(
         string userId,
+        InvitationAccountType accountType = InvitationAccountType.User,
         string? familyId = null,
         CancellationToken cancellationToken = default)
     {
@@ -34,6 +36,7 @@ public class RefreshTokenService : IRefreshTokenService
         var refreshToken = new RefreshToken
         {
             UserId = userId,
+            AccountType = accountType,
             TokenHash = SecureTokenGenerator.Hash(rawToken),
             FamilyId = familyId ?? Guid.NewGuid().ToString(),
             ExpiresAt = expiresAtUtc,
@@ -57,21 +60,22 @@ public class RefreshTokenService : IRefreshTokenService
 
         if (existing is null)
         {
-            return new RefreshTokenValidationResult(false, null, null, null, RefreshTokenFailureReason.NotFound);
+            return new RefreshTokenValidationResult(false, null, null, null, null, RefreshTokenFailureReason.NotFound);
         }
 
         if (existing.RevokedAt is not null)
         {
             await RevokeFamilyAsync(existing.FamilyId, cancellationToken);
-            return new RefreshTokenValidationResult(false, null, null, null, RefreshTokenFailureReason.ReusedAndRevoked);
+            return new RefreshTokenValidationResult(false, null, null, null, null, RefreshTokenFailureReason.ReusedAndRevoked);
         }
 
         if (existing.ExpiresAt < DateTime.UtcNow)
         {
-            return new RefreshTokenValidationResult(false, null, null, null, RefreshTokenFailureReason.Expired);
+            return new RefreshTokenValidationResult(false, null, null, null, null, RefreshTokenFailureReason.Expired);
         }
 
-        var (newToken, newExpiresAtUtc) = await IssueAsync(existing.UserId, existing.FamilyId, cancellationToken);
+        var (newToken, newExpiresAtUtc) = await IssueAsync(
+            existing.UserId, existing.AccountType, existing.FamilyId, cancellationToken);
         var newTokenHash = SecureTokenGenerator.Hash(newToken);
 
         var revokeFilter = Builders<RefreshToken>.Filter.Eq(t => t.Id, existing.Id);
@@ -80,7 +84,7 @@ public class RefreshTokenService : IRefreshTokenService
             .Set(t => t.ReplacedByTokenHash, newTokenHash);
         await _mongoContext.RefreshTokens.UpdateOneAsync(revokeFilter, revokeUpdate, cancellationToken: cancellationToken);
 
-        return new RefreshTokenValidationResult(true, existing.UserId, newToken, newExpiresAtUtc, null);
+        return new RefreshTokenValidationResult(true, existing.UserId, existing.AccountType, newToken, newExpiresAtUtc, null);
     }
 
     // revoke a single refresh token, used on logout

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The static kumbh-sans set only ships Light/Regular/Bold - no Medium. This pulls a true
+     500-weight instance out of the variable Kumbh Sans font (~/Documents/fonts/Kumbh_Sans)
+     instead of faking it with the Regular weight or the Bold one. -->
+<font-family xmlns:app="http://schemas.android.com/apk/res-auto">
+    <font
+        app:font="@font/kumbh_sans_variable"
+        app:fontStyle="normal"
+        app:fontVariationSettings="'wght' 500"
+        app:fontWeight="500" />
+</font-family>

@@ -24,4 +24,9 @@
         android:name="com.example.smart_solar_mgt_app.ui.gridoperator.map.OperatorMapFragment"
         android:label="Map" />
 
+    <fragment
+        android:id="@+id/pendingProsumersFragment"
+        android:name="com.example.smart_solar_mgt_app.ui.gridoperator.prosumers.PendingProsumersFragment"
+        android:label="Requests" />
+
 </navigation>

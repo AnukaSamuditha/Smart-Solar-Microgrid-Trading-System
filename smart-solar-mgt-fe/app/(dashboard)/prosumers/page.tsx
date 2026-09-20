@@ -87,8 +87,10 @@ export default function ProsumersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All statuses</SelectItem>
+                <SelectItem value="PendingApproval">Pending approval</SelectItem>
                 <SelectItem value="Invited">Invited</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Rejected">Rejected</SelectItem>
                 <SelectItem value="Deactivated">Deactivated</SelectItem>
               </SelectContent>
             </Select>

@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.smart_solar_mgt_app.R
+import com.example.smart_solar_mgt_app.core.common.SyncStatus
 import com.example.smart_solar_mgt_app.domain.model.BookingListItem
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
 import com.google.android.material.card.MaterialCardView
@@ -42,12 +43,11 @@ class BookingsAdapter(
             val color = colorFor(item.status)
             tvStatus.setTextColor(color)
             tvStatus.backgroundTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(color, 38))
-            // No background sync worker exists yet in this offline-first phase (see
-            // core/common/SyncStatus.kt) - every write sets PENDING_SYNC and nothing ever
-            // resolves it back to SYNCED, so showing this for "not yet synced" made it appear
-            // permanently on every booking a user actually creates/approves/cancels rather than
-            // only while a real sync is in flight. Hidden until a real sync job can report that.
-            ivSyncPending.isVisible = false
+            // A real sync worker now exists (core/sync/SyncWorker.kt) that resolves PENDING_SYNC
+            // back to SYNCED once the write reaches the backend, so this icon is meaningful again -
+            // shown for both PENDING_SYNC (still queued) and SYNC_FAILED (a definitive rejection
+            // the outbox gave up retrying), never for SYNCED.
+            ivSyncPending.isVisible = item.syncStatus != SyncStatus.SYNCED
             card.setOnClickListener { onItemClick(item) }
         }
 
@@ -56,6 +56,7 @@ class BookingsAdapter(
             BookingStatus.APPROVED -> Color.parseColor("#2E7D32")
             BookingStatus.COMPLETED -> Color.parseColor("#1565C0")
             BookingStatus.CANCELLED -> Color.parseColor("#C62828")
+            BookingStatus.REJECTED -> Color.parseColor("#E65100")
             BookingStatus.EXPIRED -> Color.parseColor("#757575")
         }
     }

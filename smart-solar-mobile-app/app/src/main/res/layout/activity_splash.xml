@@ -11,7 +11,7 @@
         android:id="@+id/logoMark"
         android:layout_width="88dp"
         android:layout_height="88dp"
-        android:background="@drawable/bg_circle_primary"
+        android:background="@drawable/bg_wattex_logo_badge_large"
         app:layout_constraintBottom_toTopOf="@id/tvAppName"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -20,12 +20,11 @@
         app:layout_constraintVertical_bias="0.42">
 
         <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_gravity="center"
             android:contentDescription="@null"
-            android:src="@drawable/ic_solar_mark"
-            app:tint="@color/solar_on_primary" />
+            android:src="@drawable/ic_wattex_logo" />
     </FrameLayout>
 
     <TextView
@@ -33,7 +32,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Smart Solar Microgrid"
+        android:text="Wattex"
         android:textColor="@color/solar_text_primary"
         android:textSize="22sp"
         android:textStyle="bold"

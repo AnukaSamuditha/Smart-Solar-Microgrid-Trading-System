@@ -38,7 +38,7 @@ class BookingActionSummaryFragment : Fragment(R.layout.fragment_booking_action_s
 
     private val viewModel: BookingActionSummaryViewModel by viewModels {
         viewModelFactory {
-            initializer { BookingActionSummaryViewModel(ServiceLocator.bookingRepository, ServiceLocator.stationRepository) }
+            initializer { BookingActionSummaryViewModel(ServiceLocator.bookingRepository, ServiceLocator.nodeRepository) }
         }
     }
 
@@ -124,6 +124,7 @@ class BookingActionSummaryFragment : Fragment(R.layout.fragment_booking_action_s
         BookingStatus.APPROVED -> Color.parseColor("#2E7D32")
         BookingStatus.COMPLETED -> Color.parseColor("#1565C0")
         BookingStatus.CANCELLED -> Color.parseColor("#C62828")
+        BookingStatus.REJECTED -> Color.parseColor("#E65100")
         BookingStatus.EXPIRED -> Color.parseColor("#757575")
     }
 

@@ -1,15 +1,19 @@
 // ReservationService.cs
 // Purpose: Orchestrates energy slot reservation creation, search/pagination, rescheduling, and
-// cancellation (project-specification.md section 3.4). A battery slot holds at most one active
-// (Confirmed, not-yet-elapsed) reservation at a time; the Reservations collection itself is the
-// source of truth for that rule, not the embedded MicrogridNode.BatterySlots[].Status flag, since
-// that flag can already be edited directly and independently via
-// MicrogridNodeService.UpdateBatterySlotStatusAsync. This service still flips that flag on
-// create/cancel as a best-effort display cache for the existing battery-slots UI, but never reads
-// it to decide whether a slot can be booked. No Mongo transactions are used anywhere in this
-// codebase, so CreateAsync uses an insert-then-verify sequence instead of claim-then-insert to
-// keep the one piece of shared, always-visible state (the node's BatterySlots array) safe from a
-// partial-write failure mode.
+// cancellation (project-specification.md section 3.4), plus a prosumer self-service request/
+// review workflow (RequestAsync/ApproveAsync/RejectAsync) alongside the original staff-assisted
+// path (CreateAsync). A battery slot holds at most one active (Confirmed, not-yet-elapsed)
+// reservation at a time; the Reservations collection itself is the source of truth for that rule,
+// not the embedded MicrogridNode.BatterySlots[].Status flag, since that flag can already be
+// edited directly and independently via MicrogridNodeService.UpdateBatterySlotStatusAsync. This
+// service still flips that flag as a best-effort display cache for the existing battery-slots UI
+// (Reserved once a Confirmed reservation exists - immediately on staff CreateAsync, or only once
+// ApproveAsync confirms a prosumer's Pending request - and back to Available on cancel), but
+// never reads it to decide whether a slot can be booked. No Mongo transactions are used anywhere
+// in this codebase, so CreateAsync uses an insert-then-verify sequence instead of claim-then-
+// insert to keep the one piece of shared, always-visible state (the node's BatterySlots array)
+// safe from a partial-write failure mode; ApproveAsync uses the equivalent check-then-confirm
+// sequence for the same reason.
 
 using System.Linq.Expressions;
 using MongoDB.Driver;
@@ -45,31 +49,10 @@ public class ReservationService : IReservationService
     {
         var normalizedNic = NormalizeNic(prosumerNic);
 
-        var prosumer = await _mongoContext.Prosumers.Find(p => p.Nic == normalizedNic).FirstOrDefaultAsync(cancellationToken);
-        if (prosumer is null)
+        var (validationResult, prosumer, node) = await ValidateBookingSubjectsAsync(normalizedNic, nodeId, slotId, cancellationToken);
+        if (validationResult != CreateReservationResult.Succeeded)
         {
-            return (CreateReservationResult.ProsumerNotFound, null);
-        }
-
-        if (prosumer.Status != ProsumerStatus.Active)
-        {
-            return (CreateReservationResult.ProsumerDeactivated, null);
-        }
-
-        var node = await _mongoContext.MicrogridNodes.Find(n => n.Id == nodeId).FirstOrDefaultAsync(cancellationToken);
-        if (node is null)
-        {
-            return (CreateReservationResult.NodeNotFound, null);
-        }
-
-        if (node.Status != MicrogridNodeStatus.Active)
-        {
-            return (CreateReservationResult.NodeDeactivated, null);
-        }
-
-        if (node.BatterySlots.All(s => s.SlotId != slotId))
-        {
-            return (CreateReservationResult.SlotNotFound, null);
+            return (validationResult, null);
         }
 
         if (await HasConflictingReservationAsync(nodeId, slotId, excludeId: null, cancellationToken))
@@ -100,7 +83,88 @@ public class ReservationService : IReservationService
 
         await SetNodeSlotStatusAsync(nodeId, slotId, BatterySlotStatus.Reserved, cancellationToken);
 
-        return (CreateReservationResult.Succeeded, new EnrichedReservation(reservation, node.Name, prosumer.FullName));
+        return (CreateReservationResult.Succeeded, new EnrichedReservation(reservation, node!.Name, prosumer!.FullName));
+    }
+
+    // prosumer self-service: create a Pending reservation request. Reuses the same subject
+    // validation and pre-check as CreateAsync, but never marks the slot Reserved on the node's
+    // cached BatterySlots - that only happens once ApproveAsync confirms the request, so a
+    // request that ends up Rejected never wrongly showed the slot as taken in the meantime.
+    // HasConflictingReservationAsync only ever counts Confirmed reservations, so multiple
+    // prosumers may have concurrently-Pending requests for the same slot - ApproveAsync resolves
+    // that by re-checking immediately before confirming.
+    public async Task<(CreateReservationResult Result, EnrichedReservation? Reservation)> RequestAsync(
+        string prosumerNic,
+        string nodeId,
+        string slotId,
+        DateTime startTime,
+        DateTime endTime,
+        double? energyAmount,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedNic = NormalizeNic(prosumerNic);
+
+        var (validationResult, prosumer, node) = await ValidateBookingSubjectsAsync(normalizedNic, nodeId, slotId, cancellationToken);
+        if (validationResult != CreateReservationResult.Succeeded)
+        {
+            return (validationResult, null);
+        }
+
+        if (await HasConflictingReservationAsync(nodeId, slotId, excludeId: null, cancellationToken))
+        {
+            return (CreateReservationResult.SlotNotAvailable, null);
+        }
+
+        var reservation = new Reservation
+        {
+            ProsumerNic = normalizedNic,
+            NodeId = nodeId,
+            SlotId = slotId,
+            StartTime = startTime,
+            EndTime = endTime,
+            EnergyAmount = energyAmount,
+            Status = ReservationStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = normalizedNic
+        };
+        await _mongoContext.Reservations.InsertOneAsync(reservation, cancellationToken: cancellationToken);
+
+        return (CreateReservationResult.Succeeded, new EnrichedReservation(reservation, node!.Name, prosumer!.FullName));
+    }
+
+    // shared prosumer/node/slot validation for CreateAsync and RequestAsync: prosumer exists and
+    // is Active, node exists and is Active, the slot exists on that node
+    private async Task<(CreateReservationResult Result, Prosumer? Prosumer, MicrogridNode? Node)> ValidateBookingSubjectsAsync(
+        string normalizedNic, string nodeId, string slotId, CancellationToken cancellationToken)
+    {
+        var prosumer = await _mongoContext.Prosumers.Find(p => p.Nic == normalizedNic).FirstOrDefaultAsync(cancellationToken);
+        if (prosumer is null)
+        {
+            return (CreateReservationResult.ProsumerNotFound, null, null);
+        }
+
+        if (prosumer.Status != ProsumerStatus.Active)
+        {
+            return (CreateReservationResult.ProsumerDeactivated, null, null);
+        }
+
+        var node = await _mongoContext.MicrogridNodes.Find(n => n.Id == nodeId).FirstOrDefaultAsync(cancellationToken);
+        if (node is null)
+        {
+            return (CreateReservationResult.NodeNotFound, null, null);
+        }
+
+        if (node.Status != MicrogridNodeStatus.Active)
+        {
+            return (CreateReservationResult.NodeDeactivated, null, null);
+        }
+
+        if (node.BatterySlots.All(s => s.SlotId != slotId))
+        {
+            return (CreateReservationResult.SlotNotFound, null, null);
+        }
+
+        return (CreateReservationResult.Succeeded, prosumer, node);
     }
 
     // look up a single reservation by id, enriched with its node name / prosumer full name
@@ -108,6 +172,22 @@ public class ReservationService : IReservationService
     {
         var reservation = await _mongoContext.Reservations.Find(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
         if (reservation is null)
+        {
+            return null;
+        }
+
+        var enriched = await EnrichAsync([reservation], cancellationToken);
+        return enriched[0];
+    }
+
+    // prosumer self-service: fetch a reservation only if it belongs to the calling prosumer -
+    // an ownership mismatch returns null, identical to a nonexistent id, so a prosumer can never
+    // learn another prosumer's reservation exists
+    public async Task<EnrichedReservation?> GetByIdForProsumerAsync(
+        string id, string prosumerNic, CancellationToken cancellationToken = default)
+    {
+        var reservation = await _mongoContext.Reservations.Find(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
+        if (reservation is null || reservation.ProsumerNic != NormalizeNic(prosumerNic))
         {
             return null;
         }
@@ -189,21 +269,7 @@ public class ReservationService : IReservationService
             return ReservationActionResult.NotFound;
         }
 
-        var modifiableCheck = CheckModifiable(reservation);
-        if (modifiableCheck != ReservationActionResult.Succeeded)
-        {
-            return modifiableCheck;
-        }
-
-        var filter = Builders<Reservation>.Filter.Eq(r => r.Id, reservation.Id);
-        var update = Builders<Reservation>.Update
-            .Set(r => r.StartTime, startTime)
-            .Set(r => r.EndTime, endTime)
-            .Set(r => r.UpdatedAt, DateTime.UtcNow)
-            .Set(r => r.UpdatedBy, performedByUserId);
-        await _mongoContext.Reservations.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
-
-        return ReservationActionResult.Succeeded;
+        return await UpdateCoreAsync(reservation, startTime, endTime, performedByUserId, cancellationToken);
     }
 
     // cancel a reservation and release its slot's best-effort cached status back to Available
@@ -218,6 +284,113 @@ public class ReservationService : IReservationService
             return ReservationActionResult.NotFound;
         }
 
+        return await CancelCoreAsync(reservation, performedByUserId, cancellationToken);
+    }
+
+    // prosumer self-service: reschedule own reservation only - an ownership mismatch returns
+    // NotFound, identical to a nonexistent id
+    public async Task<ReservationActionResult> UpdateForProsumerAsync(
+        string id,
+        string prosumerNic,
+        DateTime startTime,
+        DateTime endTime,
+        CancellationToken cancellationToken = default)
+    {
+        var reservation = await _mongoContext.Reservations.Find(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
+        if (reservation is null || reservation.ProsumerNic != NormalizeNic(prosumerNic))
+        {
+            return ReservationActionResult.NotFound;
+        }
+
+        return await UpdateCoreAsync(reservation, startTime, endTime, reservation.ProsumerNic, cancellationToken);
+    }
+
+    // prosumer self-service: cancel own reservation only - an ownership mismatch returns
+    // NotFound, identical to a nonexistent id
+    public async Task<ReservationActionResult> CancelForProsumerAsync(
+        string id,
+        string prosumerNic,
+        CancellationToken cancellationToken = default)
+    {
+        var reservation = await _mongoContext.Reservations.Find(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
+        if (reservation is null || reservation.ProsumerNic != NormalizeNic(prosumerNic))
+        {
+            return ReservationActionResult.NotFound;
+        }
+
+        return await CancelCoreAsync(reservation, reservation.ProsumerNic, cancellationToken);
+    }
+
+    // approve a Pending request: re-checks the slot is still free (another reservation may have
+    // been confirmed against it while this one sat Pending) immediately before confirming, then
+    // marks the node's cached slot Reserved for the first time (RequestAsync deliberately skipped
+    // this)
+    public async Task<ReservationReviewResult> ApproveAsync(
+        string id, string performedByUserId, CancellationToken cancellationToken = default)
+    {
+        var reservation = await _mongoContext.Reservations.Find(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
+        if (reservation is null)
+        {
+            return ReservationReviewResult.NotFound;
+        }
+
+        if (reservation.Status != ReservationStatus.Pending)
+        {
+            return ReservationReviewResult.NotPending;
+        }
+
+        if (await HasConflictingReservationAsync(reservation.NodeId, reservation.SlotId, excludeId: reservation.Id, cancellationToken))
+        {
+            return ReservationReviewResult.SlotNoLongerAvailable;
+        }
+
+        var filter = Builders<Reservation>.Filter.Eq(r => r.Id, reservation.Id);
+        var update = Builders<Reservation>.Update
+            .Set(r => r.Status, ReservationStatus.Confirmed)
+            .Set(r => r.ReviewedBy, performedByUserId)
+            .Set(r => r.ReviewedAt, DateTime.UtcNow)
+            .Set(r => r.UpdatedAt, DateTime.UtcNow)
+            .Set(r => r.UpdatedBy, performedByUserId);
+        await _mongoContext.Reservations.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+
+        await SetNodeSlotStatusAsync(reservation.NodeId, reservation.SlotId, BatterySlotStatus.Reserved, cancellationToken);
+
+        return ReservationReviewResult.Succeeded;
+    }
+
+    // reject a Pending request; the slot was never marked Reserved by RequestAsync, so there's
+    // nothing to release on the node's cached BatterySlots
+    public async Task<ReservationReviewResult> RejectAsync(
+        string id, string performedByUserId, string? reason, CancellationToken cancellationToken = default)
+    {
+        var reservation = await _mongoContext.Reservations.Find(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
+        if (reservation is null)
+        {
+            return ReservationReviewResult.NotFound;
+        }
+
+        if (reservation.Status != ReservationStatus.Pending)
+        {
+            return ReservationReviewResult.NotPending;
+        }
+
+        var filter = Builders<Reservation>.Filter.Eq(r => r.Id, reservation.Id);
+        var update = Builders<Reservation>.Update
+            .Set(r => r.Status, ReservationStatus.Rejected)
+            .Set(r => r.RejectionReason, string.IsNullOrWhiteSpace(reason) ? null : reason.Trim())
+            .Set(r => r.ReviewedBy, performedByUserId)
+            .Set(r => r.ReviewedAt, DateTime.UtcNow)
+            .Set(r => r.UpdatedAt, DateTime.UtcNow)
+            .Set(r => r.UpdatedBy, performedByUserId);
+        await _mongoContext.Reservations.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+
+        return ReservationReviewResult.Succeeded;
+    }
+
+    // shared reschedule logic for UpdateAsync/UpdateForProsumerAsync, gated by CheckModifiable
+    private async Task<ReservationActionResult> UpdateCoreAsync(
+        Reservation reservation, DateTime startTime, DateTime endTime, string performedBy, CancellationToken cancellationToken)
+    {
         var modifiableCheck = CheckModifiable(reservation);
         if (modifiableCheck != ReservationActionResult.Succeeded)
         {
@@ -226,12 +399,40 @@ public class ReservationService : IReservationService
 
         var filter = Builders<Reservation>.Filter.Eq(r => r.Id, reservation.Id);
         var update = Builders<Reservation>.Update
-            .Set(r => r.Status, ReservationStatus.Cancelled)
+            .Set(r => r.StartTime, startTime)
+            .Set(r => r.EndTime, endTime)
             .Set(r => r.UpdatedAt, DateTime.UtcNow)
-            .Set(r => r.UpdatedBy, performedByUserId);
+            .Set(r => r.UpdatedBy, performedBy);
         await _mongoContext.Reservations.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
 
-        await SetNodeSlotStatusAsync(reservation.NodeId, reservation.SlotId, BatterySlotStatus.Available, cancellationToken);
+        return ReservationActionResult.Succeeded;
+    }
+
+    // shared cancel logic for CancelAsync/CancelForProsumerAsync, gated by CheckModifiable; only
+    // releases the node's cached slot back to Available if this reservation had actually claimed
+    // it (a still-Pending reservation never marked it Reserved in the first place)
+    private async Task<ReservationActionResult> CancelCoreAsync(
+        Reservation reservation, string performedBy, CancellationToken cancellationToken)
+    {
+        var modifiableCheck = CheckModifiable(reservation);
+        if (modifiableCheck != ReservationActionResult.Succeeded)
+        {
+            return modifiableCheck;
+        }
+
+        var hadClaimedSlot = reservation.Status == ReservationStatus.Confirmed;
+
+        var filter = Builders<Reservation>.Filter.Eq(r => r.Id, reservation.Id);
+        var update = Builders<Reservation>.Update
+            .Set(r => r.Status, ReservationStatus.Cancelled)
+            .Set(r => r.UpdatedAt, DateTime.UtcNow)
+            .Set(r => r.UpdatedBy, performedBy);
+        await _mongoContext.Reservations.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+
+        if (hadClaimedSlot)
+        {
+            await SetNodeSlotStatusAsync(reservation.NodeId, reservation.SlotId, BatterySlotStatus.Available, cancellationToken);
+        }
 
         return ReservationActionResult.Succeeded;
     }
@@ -240,7 +441,10 @@ public class ReservationService : IReservationService
     // one within the 12-hour notice window, evaluated against its current (pre-update) StartTime
     private static ReservationActionResult CheckModifiable(Reservation reservation)
     {
-        if (reservation.Status == ReservationStatus.Cancelled)
+        // any terminal status (Cancelled/Rejected/Completed) can't be modified further; a still-
+        // Pending reservation is always modifiable regardless of its StartTime distance below,
+        // since it hasn't consumed a slot yet
+        if (reservation.Status is ReservationStatus.Cancelled or ReservationStatus.Rejected or ReservationStatus.Completed)
         {
             return ReservationActionResult.AlreadyCancelled;
         }

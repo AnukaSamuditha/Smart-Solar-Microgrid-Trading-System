@@ -77,6 +77,109 @@ public class ProsumerService : IProsumerService
         return ProsumerCreateResult.Succeeded;
     }
 
+    // self-registration from the mobile app (public, no auth): create a PendingApproval profile
+    // with no password and no invitation yet - nothing to invite to until a reviewer approves it
+    public async Task<ProsumerCreateResult> RegisterAsync(
+        string nic,
+        string email,
+        string? fullName,
+        string? phone,
+        string? address,
+        CancellationToken cancellationToken = default)
+    {
+        var prosumer = new Prosumer
+        {
+            Nic = NormalizeNic(nic),
+            Email = NormalizeEmail(email),
+            FullName = string.IsNullOrWhiteSpace(fullName) ? null : fullName.Trim(),
+            Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim(),
+            Address = string.IsNullOrWhiteSpace(address) ? null : address.Trim(),
+            Status = ProsumerStatus.PendingApproval,
+            RegistrationSource = ProsumerRegistrationSource.SelfRegistered,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = SelfRegisteredCreatedByMarker
+        };
+
+        try
+        {
+            await _mongoContext.Prosumers.InsertOneAsync(prosumer, cancellationToken: cancellationToken);
+        }
+        catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+        {
+            var nicTaken = await GetByNicAsync(prosumer.Nic, cancellationToken) is not null;
+            return nicTaken ? ProsumerCreateResult.NicConflict : ProsumerCreateResult.EmailConflict;
+        }
+
+        return ProsumerCreateResult.Succeeded;
+    }
+
+    // a self-registered prosumer has no staff user id to attribute creation to - CreatedBy is
+    // audit-only free text everywhere else in this codebase (see Reservation.CreatedBy), so a
+    // fixed marker is fine here rather than overloading it with the prosumer's own NIC
+    private const string SelfRegisteredCreatedByMarker = "self-registered";
+
+    // Backoffice/Grid Operator approves a PendingApproval request: moves it into the same
+    // Invited state (and invitation-token machinery) the staff-initiated path already uses, then
+    // emails a mobile-specific approval notice (a code, not a web link - see
+    // ProsumerMobileApprovalEmailTemplate) since this prosumer sets their password in the app
+    public async Task<ProsumerReviewResult> ApproveAsync(string nic, string performedByUserId, CancellationToken cancellationToken = default)
+    {
+        var prosumer = await GetByNicAsync(nic, cancellationToken);
+        if (prosumer is null)
+        {
+            return ProsumerReviewResult.NotFound;
+        }
+
+        if (prosumer.Status != ProsumerStatus.PendingApproval)
+        {
+            return ProsumerReviewResult.NotPendingApproval;
+        }
+
+        var filter = Builders<Prosumer>.Filter.Eq(p => p.Nic, prosumer.Nic);
+        var update = Builders<Prosumer>.Update
+            .Set(p => p.Status, ProsumerStatus.Invited)
+            .Set(p => p.ReviewedBy, performedByUserId)
+            .Set(p => p.ReviewedAt, DateTime.UtcNow)
+            .Set(p => p.UpdatedAt, DateTime.UtcNow)
+            .Set(p => p.UpdatedBy, performedByUserId);
+        await _mongoContext.Prosumers.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+
+        var rawToken = await _invitationService.CreateInvitationAsync(
+            prosumer.Nic, performedByUserId, InvitationAccountType.Prosumer, cancellationToken);
+        var (subject, body) = ProsumerMobileApprovalEmailTemplate.Build(prosumer, rawToken, _invitationOptions.TokenLifetimeHours);
+        await _emailSender.SendAsync(prosumer.Email, subject, body, cancellationToken);
+
+        return ProsumerReviewResult.Succeeded;
+    }
+
+    // Backoffice/Grid Operator denies a PendingApproval request, terminally (Rejected is not
+    // reachable from anywhere else and has no path back to PendingApproval)
+    public async Task<ProsumerReviewResult> DenyAsync(string nic, string performedByUserId, string? reason, CancellationToken cancellationToken = default)
+    {
+        var prosumer = await GetByNicAsync(nic, cancellationToken);
+        if (prosumer is null)
+        {
+            return ProsumerReviewResult.NotFound;
+        }
+
+        if (prosumer.Status != ProsumerStatus.PendingApproval)
+        {
+            return ProsumerReviewResult.NotPendingApproval;
+        }
+
+        var filter = Builders<Prosumer>.Filter.Eq(p => p.Nic, prosumer.Nic);
+        var update = Builders<Prosumer>.Update
+            .Set(p => p.Status, ProsumerStatus.Rejected)
+            .Set(p => p.RejectionReason, string.IsNullOrWhiteSpace(reason) ? null : reason.Trim())
+            .Set(p => p.ReviewedBy, performedByUserId)
+            .Set(p => p.ReviewedAt, DateTime.UtcNow)
+            .Set(p => p.UpdatedAt, DateTime.UtcNow)
+            .Set(p => p.UpdatedBy, performedByUserId);
+        await _mongoContext.Prosumers.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+
+        return ProsumerReviewResult.Succeeded;
+    }
+
     // look up a prosumer by NIC, used by update/deactivate/reactivate and the get-by-id path
     public async Task<Prosumer?> GetByNicAsync(string nic, CancellationToken cancellationToken = default) =>
         await _mongoContext.Prosumers.Find(p => p.Nic == NormalizeNic(nic)).FirstOrDefaultAsync(cancellationToken);

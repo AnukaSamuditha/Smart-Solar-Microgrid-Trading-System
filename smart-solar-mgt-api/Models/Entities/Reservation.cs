@@ -3,6 +3,9 @@
 // Prosumer (by NIC) and a specific MicrogridNode battery slot (by NodeId + SlotId) with plain,
 // unvalidated foreign-key strings, matching existing precedent (RefreshToken.UserId,
 // Invitation.AccountId). Id is an auto-generated ObjectId — a reservation has no natural key.
+// ReviewedBy/ReviewedAt/RejectionReason are only ever set on a prosumer self-service request that
+// a Backoffice/Grid Operator has approved or rejected (see ReservationService.ApproveAsync/
+// RejectAsync) - mirrors Prosumer's identical fields for the same purpose.
 
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -36,4 +39,12 @@ public class Reservation
     public DateTime? UpdatedAt { get; set; }
 
     public string? UpdatedBy { get; set; }
+
+    public double? EnergyAmount { get; set; }
+
+    public string? ReviewedBy { get; set; }
+
+    public DateTime? ReviewedAt { get; set; }
+
+    public string? RejectionReason { get; set; }
 }

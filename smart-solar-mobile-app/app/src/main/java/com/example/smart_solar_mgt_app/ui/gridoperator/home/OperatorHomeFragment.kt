@@ -31,7 +31,7 @@ class OperatorHomeFragment : Fragment(R.layout.fragment_operator_home) {
 
     private val viewModel: OperatorHomeViewModel by viewModels {
         viewModelFactory {
-            initializer { OperatorHomeViewModel(ServiceLocator.bookingRepository, ServiceLocator.stationRepository) }
+            initializer { OperatorHomeViewModel(ServiceLocator.remoteReservationRepository) }
         }
     }
 
@@ -78,6 +78,8 @@ class OperatorHomeFragment : Fragment(R.layout.fragment_operator_home) {
 
             if (state is OperatorHomeUiState.Loaded) {
                 adapter.submitList(state.items)
+            } else if (state is OperatorHomeUiState.Error) {
+                Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -87,14 +89,23 @@ class OperatorHomeFragment : Fragment(R.layout.fragment_operator_home) {
         viewModel.load()
     }
 
+    // Approve/reject go straight through the backend (BookingRepository.approveBooking/
+    // rejectBooking, already remote-backed since the earlier reservation-integration phase) -
+    // on success the item is removed from the list immediately rather than re-fetching the whole
+    // cross-prosumer queue, same optimistic-update precedent as PendingProsumersFragment.
     private fun approve(bookingId: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { ServiceLocator.bookingRepository.approveBooking(bookingId) }
             when (result) {
-                is AppResult.Success -> Toast.makeText(requireContext(), "Booking approved", Toast.LENGTH_SHORT).show()
-                is AppResult.Failure -> Toast.makeText(requireContext(), "Approve failed: ${result.error}", Toast.LENGTH_LONG).show()
+                is AppResult.Success -> {
+                    Toast.makeText(requireContext(), "Reservation approved", Toast.LENGTH_SHORT).show()
+                    viewModel.removeLocally(bookingId)
+                }
+                is AppResult.Failure -> {
+                    Toast.makeText(requireContext(), "Approve failed: ${result.error}", Toast.LENGTH_LONG).show()
+                    viewModel.load()
+                }
             }
-            viewModel.load()
         }
     }
 
@@ -102,10 +113,15 @@ class OperatorHomeFragment : Fragment(R.layout.fragment_operator_home) {
         viewLifecycleOwner.lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { ServiceLocator.bookingRepository.rejectBooking(bookingId) }
             when (result) {
-                is AppResult.Success -> Toast.makeText(requireContext(), "Booking rejected", Toast.LENGTH_SHORT).show()
-                is AppResult.Failure -> Toast.makeText(requireContext(), "Reject failed: ${result.error}", Toast.LENGTH_LONG).show()
+                is AppResult.Success -> {
+                    Toast.makeText(requireContext(), "Reservation rejected", Toast.LENGTH_SHORT).show()
+                    viewModel.removeLocally(bookingId)
+                }
+                is AppResult.Failure -> {
+                    Toast.makeText(requireContext(), "Reject failed: ${result.error}", Toast.LENGTH_LONG).show()
+                    viewModel.load()
+                }
             }
-            viewModel.load()
         }
     }
 }

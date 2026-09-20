@@ -21,4 +21,15 @@ interface AuthRepository {
 
     fun mirrorSessionToSqlite(session: Session)
     fun clearSessionMirror()
+
+    /**
+     * Seeds/refreshes the local profile cache for a remotely-authenticated prosumer (see
+     * SecurityManagerImpl.loginRemoteProsumer) from the server's canonical record, so
+     * Home/Profile screens (which only ever read this local table) show real data instead of
+     * falling back to the login identifier. Never touches passwordHash - a remote-authenticated
+     * row must stay password-less locally so SecurityManagerImpl.login keeps deferring it to the
+     * real backend rather than trusting a stale local guess. Failures are swallowed by the
+     * caller: a caching hiccup must never fail an otherwise-successful login.
+     */
+    fun upsertProsumerProfileCache(nic: String, fullName: String, email: String, phone: String?, address: String?)
 }

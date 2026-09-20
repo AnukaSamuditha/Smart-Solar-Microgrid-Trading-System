@@ -10,13 +10,14 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.smart_solar_mgt_app.R
-import com.example.smart_solar_mgt_app.domain.model.SolarStation
-import com.example.smart_solar_mgt_app.domain.model.StationStatus
+import com.example.smart_solar_mgt_app.domain.model.BatterySlotStatus
+import com.example.smart_solar_mgt_app.domain.model.MicrogridNode
+import com.example.smart_solar_mgt_app.domain.model.NodeStatus
 import com.google.android.material.card.MaterialCardView
 
 class StationListAdapter(
-    private val onItemClick: (SolarStation) -> Unit
-) : ListAdapter<SolarStation, StationListAdapter.ViewHolder>(DiffCallback) {
+    private val onItemClick: (MicrogridNode) -> Unit
+) : ListAdapter<MicrogridNode, StationListAdapter.ViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_station, parent, false)
@@ -33,26 +34,26 @@ class StationListAdapter(
         private val tvSlots: TextView = card.findViewById(R.id.tvStationSlots)
         private val tvStatus: TextView = card.findViewById(R.id.tvStationStatus)
 
-        fun bind(station: SolarStation, onItemClick: (SolarStation) -> Unit) {
-            tvName.text = station.stationName
-            tvCapacity.text = "${station.capacityKwh} kWh"
-            tvSlots.text = "${station.availableSlots} slots left"
-            tvStatus.text = station.status.name
-            val color = colorFor(station.status)
+        fun bind(node: MicrogridNode, onItemClick: (MicrogridNode) -> Unit) {
+            val availableCount = node.batterySlots.count { it.status == BatterySlotStatus.AVAILABLE }
+            tvName.text = node.name
+            tvCapacity.text = "${node.capacityKw} kWh"
+            tvSlots.text = "$availableCount of ${node.batterySlots.size} slots left"
+            tvStatus.text = node.status.name
+            val color = colorFor(node.status)
             tvStatus.setTextColor(color)
             tvStatus.backgroundTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(color, 38))
-            card.setOnClickListener { onItemClick(station) }
+            card.setOnClickListener { onItemClick(node) }
         }
 
-        private fun colorFor(status: StationStatus): Int = when (status) {
-            StationStatus.ACTIVE -> Color.parseColor("#2E7D32")
-            StationStatus.FULL -> Color.parseColor("#EF6C00")
-            StationStatus.MAINTENANCE, StationStatus.OFFLINE -> Color.parseColor("#757575")
+        private fun colorFor(status: NodeStatus): Int = when (status) {
+            NodeStatus.ACTIVE -> Color.parseColor("#2E7D32")
+            NodeStatus.DEACTIVATED -> Color.parseColor("#757575")
         }
     }
 
-    private object DiffCallback : DiffUtil.ItemCallback<SolarStation>() {
-        override fun areItemsTheSame(oldItem: SolarStation, newItem: SolarStation) = oldItem.stationId == newItem.stationId
-        override fun areContentsTheSame(oldItem: SolarStation, newItem: SolarStation) = oldItem == newItem
+    private object DiffCallback : DiffUtil.ItemCallback<MicrogridNode>() {
+        override fun areItemsTheSame(oldItem: MicrogridNode, newItem: MicrogridNode) = oldItem.nodeId == newItem.nodeId
+        override fun areContentsTheSame(oldItem: MicrogridNode, newItem: MicrogridNode) = oldItem == newItem
     }
 }
