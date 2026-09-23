@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="Wattex logo" width="280" />
+  <img src="docs/assets/logo.svg" alt="SolarSync logo" width="280" />
 </p>
 
 <h3 align="center">Smart Solar Microgrid Trading System</h3>
@@ -12,7 +12,7 @@
 
 ## Overview
 
-Wattex connects three kinds of users around a network of solar microgrid nodes:
+SolarSync connects three kinds of users around a network of solar microgrid nodes:
 
 - **Solar prosumers** — property owners with solar arrays who reserve energy drop-off/charging slots and trade stored power.
 - **Grid operators** — field staff who manage node availability and finalize energy transfers on-site.

@@ -67,7 +67,7 @@ export function LoginForm({
                 onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
                 className="h-10"
                 aria-invalid={!!errors.email}
-                name="wattex-email"
+                name="solarsync-email"
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
@@ -102,7 +102,7 @@ export function LoginForm({
                   onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
                   className="h-10 pr-9"
                   aria-invalid={!!errors.password}
-                  name="wattex-password"
+                  name="solarsync-password"
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}

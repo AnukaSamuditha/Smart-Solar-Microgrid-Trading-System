@@ -54,7 +54,7 @@ export function ResetPasswordForm({
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium">Thank you — your account is ready</p>
             <p className="text-sm text-muted-foreground">
-              Sign in with your NIC and new password using the Wattex mobile app to manage your
+              Sign in with your NIC and new password using the SolarSync mobile app to manage your
               energy reservations.
             </p>
           </div>

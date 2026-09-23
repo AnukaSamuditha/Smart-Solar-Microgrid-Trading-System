@@ -24,7 +24,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   ProfileIncomplete:
     "This account hasn't finished setup yet. Check your email for the invitation link, or ask an administrator to resend it.",
   AccountDeactivated: "This account has been deactivated. Contact an administrator.",
-  ProsumerMobileOnly: "Prosumer accounts sign in through the Wattex mobile app, not this dashboard.",
+  ProsumerMobileOnly: "Prosumer accounts sign in through the SolarSync mobile app, not this dashboard.",
   EmailAlreadyInUse: "That email address is already in use.",
   SeededAdminProtected: "This account is protected and can't be deactivated or deleted.",
   ValidEmailRequired: "Enter a valid email address.",

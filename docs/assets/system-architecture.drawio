@@ -1,0 +1,115 @@
+<mxfile host="Electron" agent="Claude Code">
+  <diagram id="solarsync-system-architecture" name="System Architecture">
+    <mxGraphModel dx="1284" dy="804" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;fontFamily=Ubuntu;" value="Smart Solar Microgrid Trading System (SolarSync) — System Architecture" vertex="1">
+          <mxGeometry height="30" width="880" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mobile_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=center;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontFamily=Ubuntu;" value="Mobile App (Android, Kotlin)&#xa;Prosumers &amp;amp; Grid Operators" vertex="1">
+          <mxGeometry height="330" width="300" x="40" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="mobile_ui" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontFamily=Ubuntu;" value="UI Layer&#xa;(Auth, Prosumer, Grid Operator screens)" vertex="1">
+          <mxGeometry height="40" width="260" x="60" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="mobile_domain" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontFamily=Ubuntu;" value="Domain / Repository Layer" vertex="1">
+          <mxGeometry height="40" width="260" x="60" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="mobile_core" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontFamily=Ubuntu;" value="SQLite&#xa;(offline cache)" vertex="1">
+          <mxGeometry height="60" width="120" x="60" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="mobile_sync" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontFamily=Ubuntu;" value="Sync Outbox&#xa;(WorkManager)" vertex="1">
+          <mxGeometry height="60" width="120" x="200" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="mobile_net" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontFamily=Ubuntu;" value="Network Client (OkHttp)" vertex="1">
+          <mxGeometry height="40" width="260" x="60" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="webdash_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=center;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontFamily=Ubuntu;" value="Web Dashboard (Next.js 16 / React 19)&#xa;Backoffice &amp;amp; Grid Operator Staff" vertex="1">
+          <mxGeometry height="210" width="280" x="400" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="webdash_ui" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontFamily=Ubuntu;" value="Pages &amp;amp; Components" vertex="1">
+          <mxGeometry height="60" width="240" x="420" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="webdash_net" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontFamily=Ubuntu;" value="API Client Layer (REST)" vertex="1">
+          <mxGeometry height="50" width="240" x="420" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="api_group" parent="1" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=center;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontFamily=Ubuntu;" value="Web API (ASP.NET Core, .NET 10)&#xa;Central business logic — sole database access" vertex="1">
+          <mxGeometry height="300" width="640" x="40" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="api_endpoints" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontFamily=Ubuntu;" value="Endpoints&#xa;Auth · User · Prosumer · Node&#xa;Reservation · Transaction · Dashboard" vertex="1">
+          <mxGeometry height="70" width="280" x="60" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="api_auth" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontFamily=Ubuntu;" value="Auth &amp;amp; Identity Services&#xa;JWT · Cookie · Invitation · Refresh Token" vertex="1">
+          <mxGeometry height="70" width="280" x="380" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="api_services" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontFamily=Ubuntu;" value="Domain Services&#xa;Prosumers · Nodes · Reservations&#xa;Transactions · Users · Dashboard" vertex="1">
+          <mxGeometry height="70" width="280" x="60" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="api_email" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontFamily=Ubuntu;" value="Email Service (MailKit)" vertex="1">
+          <mxGeometry height="70" width="280" x="380" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="api_data" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontFamily=Ubuntu;" value="Data Access — MongoContext" vertex="1">
+          <mxGeometry height="50" width="600" x="60" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="mongo" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontFamily=Ubuntu;" value="MongoDB&#xa;(NoSQL Database)" vertex="1">
+          <mxGeometry height="90" width="140" x="280" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="smtp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Ubuntu;" value="SMTP Mail Server&#xa;(external)" vertex="1">
+          <mxGeometry height="70" width="180" x="480" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="maps" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Ubuntu;" value="Google Maps Platform&#xa;(external)" vertex="1">
+          <mxGeometry height="70" width="180" x="60" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="mobile_ui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="mobile_domain">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="mobile_domain" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="mobile_core">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="mobile_domain" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="mobile_sync">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="mobile_domain" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="mobile_net">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="webdash_ui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="webdash_net">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="api_endpoints" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="api_auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="api_endpoints" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="api_services">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="api_services" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="api_email">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="api_services" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="api_data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="api_auth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="api_data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="mobile_net" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;startArrow=block;fontStyle=1;fontFamily=Ubuntu;" target="api_endpoints" value="REST API (JWT bearer)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="webdash_net" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;startArrow=block;fontStyle=1;fontFamily=Ubuntu;" target="api_endpoints" value="REST API (JWT / cookie)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="mobile_sync" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontFamily=Ubuntu;" target="api_endpoints" value="Background sync">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" edge="1" parent="1" source="api_data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;fontFamily=Ubuntu;" target="mongo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="api_email" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontFamily=Ubuntu;" target="smtp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" edge="1" parent="1" source="mobile_net" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;dashed=1;fontFamily=Ubuntu;" target="maps" value="Node location / maps">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

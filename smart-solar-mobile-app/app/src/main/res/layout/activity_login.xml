@@ -25,14 +25,14 @@
             <FrameLayout
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:background="@drawable/bg_wattex_logo_badge">
+                android:background="@drawable/bg_solarsync_logo_badge">
 
                 <ImageView
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:layout_gravity="center"
                     android:contentDescription="@null"
-                    android:src="@drawable/ic_wattex_logo" />
+                    android:src="@drawable/ic_solarsync_logo" />
             </FrameLayout>
 
             <TextView
@@ -40,7 +40,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:fontFamily="sans-serif-medium"
-                android:text="Wattex"
+                android:text="SolarSync"
                 android:textColor="@color/solar_text_primary"
                 android:textSize="15sp" />
         </LinearLayout>

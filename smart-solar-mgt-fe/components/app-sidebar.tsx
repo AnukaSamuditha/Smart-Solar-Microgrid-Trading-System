@@ -46,7 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 />
               </svg>
               <span className="truncate text-base font-semibold text-sidebar-foreground">
-                Wattex
+                SolarSync
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>

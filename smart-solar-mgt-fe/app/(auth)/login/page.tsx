@@ -12,7 +12,7 @@ export default function LoginPage() {
         <div className="auth-logo-badge flex size-8 items-center justify-center rounded-lg">
           <ZapIcon className="size-4.5 text-[#10130d]" strokeWidth={2.5} />
         </div>
-        <span className="text-[15px] font-medium tracking-tight">Wattex</span>
+        <span className="text-[15px] font-medium tracking-tight">SolarSync</span>
       </div>
 
       <div className="flex flex-col gap-1.5">

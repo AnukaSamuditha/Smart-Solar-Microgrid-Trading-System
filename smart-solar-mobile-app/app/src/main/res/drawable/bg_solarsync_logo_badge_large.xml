@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Larger variant of bg_wattex_logo_badge.xml (splash screen), corner radius scaled to match
+<!-- Larger variant of bg_solarsync_logo_badge.xml (splash screen), corner radius scaled to match
      the same proportion (radius/size = 0.25). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
