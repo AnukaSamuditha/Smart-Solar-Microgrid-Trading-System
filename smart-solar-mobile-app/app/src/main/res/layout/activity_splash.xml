@@ -11,7 +11,7 @@
         android:id="@+id/logoMark"
         android:layout_width="88dp"
         android:layout_height="88dp"
-        android:background="@drawable/bg_wattex_logo_badge_large"
+        android:background="@drawable/bg_solarsync_logo_badge_large"
         app:layout_constraintBottom_toTopOf="@id/tvAppName"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -24,7 +24,7 @@
             android:layout_height="48dp"
             android:layout_gravity="center"
             android:contentDescription="@null"
-            android:src="@drawable/ic_wattex_logo" />
+            android:src="@drawable/ic_solarsync_logo" />
     </FrameLayout>
 
     <TextView
@@ -32,7 +32,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Wattex"
+        android:text="SolarSync"
         android:textColor="@color/solar_text_primary"
         android:textSize="22sp"
         android:textStyle="bold"

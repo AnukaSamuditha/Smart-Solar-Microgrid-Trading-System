@@ -32,7 +32,7 @@ export function AuthVisualPanel() {
           href="#"
           className="flex items-center gap-3 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
         >
-          {/* Wattex icon */}
+          {/* SolarSync icon */}
           <span className="flex h-11 w-11 items-center justify-center">
             <svg
               viewBox="0 0 32 32"
@@ -50,7 +50,7 @@ export function AuthVisualPanel() {
         
           {/* Wordmark */}
           <span className="font-heading text-xl font-bold tracking-[-0.03em] text-[#10130D]">
-            Wattex
+            SolarSync
           </span>
         </a>
 

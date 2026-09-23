@@ -22,7 +22,7 @@ import com.google.android.material.textfield.TextInputLayout
  * ProsumerMobileApprovalEmailTemplate) or staff-created and not yet finished the web flow.
  * Reachable two ways: automatically after a login attempt reports PasswordNotSet (see
  * LoginActivity.render, code field left blank), or via the deep link in the approval email
- * (wattex://reset-password?token=... - see AndroidManifest.xml's intent-filter on this
+ * (solarsync://reset-password?token=... - see AndroidManifest.xml's intent-filter on this
  * Activity), which pre-fills and hides the code field since it's already known.
  */
 class ResetPasswordActivity : AppCompatActivity() {
@@ -72,7 +72,7 @@ class ResetPasswordActivity : AppCompatActivity() {
         viewModel.state.observe(this) { render(it) }
     }
 
-    // wattex://reset-password?token=... - the code is already known, so hide that field and
+    // solarsync://reset-password?token=... - the code is already known, so hide that field and
     // jump straight to the password fields instead of asking the prosumer to copy it in by hand
     private fun applyDeepLinkToken() {
         val token = intent?.data?.getQueryParameter("token")?.takeIf { it.isNotBlank() } ?: return
