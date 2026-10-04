@@ -1,22 +1,9 @@
 // TransactionService.cs
-// Purpose: Orchestrates QR Energy Transfer Pass generation, scan-verification, and finalize/
-// complete (project-specification.md sections 4.2/4.4) - the server-side replacement for the
-// mobile app's original 100%-on-device HMAC-signed pass. A token is opaque, cryptographically
-// random (Services.Auth.SecureTokenGenerator, the same generator behind refresh/invitation
-// tokens) - never an HMAC signature - because verification is always an authoritative online
-// round-trip to this service, not an offline signature check. Only the token's SHA-256 hash is
-// ever persisted; GenerateAsync's response is the only place the raw value is ever returned,
-// exactly like InvitationService.CreateInvitationAsync. Scan and Complete each atomically claim
-// the transaction via FindOneAndUpdate filtered on its current status (single-use, the same
-// pattern InvitationService.AcceptAsync uses for UsedAt) rather than a check-then-write pair, so
-// two concurrent scans of the same pass can never both succeed.
-//
-// No Mongo transactions exist anywhere in this codebase, so GenerateAsync/ScanAsync/CompleteAsync
-// each write at most one authoritative document (the Transaction) plus a best-effort node
-// battery-slot cache update, mirroring ReservationService's own write-safety approach. There is
-// no persisted Expired state and no background job to release a stuck Scanned transaction that's
-// never completed - the same accepted, no-background-jobs limitation ReservationService's
-// BatterySlots cache already carries.
+// Purpose: Handles QR Energy Transfer Pass generation, scan verification, and completion.
+// Tokens are opaque, cryptographically random values; only their SHA-256 hashes are stored,
+// and verification is always performed online. Scan/Complete atomically claim the transaction
+// using FindOneAndUpdate to prevent concurrent reuse. No MongoDB transactions or background
+// jobs are used; battery-slot updates are best-effort cache updates.
 
 using MongoDB.Driver;
 using smart_solar_mgt_api.Data;

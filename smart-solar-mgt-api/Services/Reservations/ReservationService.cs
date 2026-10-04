@@ -1,19 +1,9 @@
 // ReservationService.cs
-// Purpose: Orchestrates energy slot reservation creation, search/pagination, rescheduling, and
-// cancellation (project-specification.md section 3.4), plus a prosumer self-service request/
-// review workflow (RequestAsync/ApproveAsync/RejectAsync) alongside the original staff-assisted
-// path (CreateAsync). A battery slot holds at most one active (Confirmed, not-yet-elapsed)
-// reservation at a time; the Reservations collection itself is the source of truth for that rule,
-// not the embedded MicrogridNode.BatterySlots[].Status flag, since that flag can already be
-// edited directly and independently via MicrogridNodeService.UpdateBatterySlotStatusAsync. This
-// service still flips that flag as a best-effort display cache for the existing battery-slots UI
-// (Reserved once a Confirmed reservation exists - immediately on staff CreateAsync, or only once
-// ApproveAsync confirms a prosumer's Pending request - and back to Available on cancel), but
-// never reads it to decide whether a slot can be booked. No Mongo transactions are used anywhere
-// in this codebase, so CreateAsync uses an insert-then-verify sequence instead of claim-then-
-// insert to keep the one piece of shared, always-visible state (the node's BatterySlots array)
-// safe from a partial-write failure mode; ApproveAsync uses the equivalent check-then-confirm
-// sequence for the same reason.
+// Purpose: Handles reservation creation, search/pagination, rescheduling, cancellation,
+// and the prosumer request/review workflow. Reservations are the source of truth for
+// active bookings; BatterySlots[].Status is only a best-effort display cache and is
+// never used for availability checks. CreateAsync and ApproveAsync use insert/check
+// sequences instead of transactions, as MongoDB transactions are not used in this codebase.
 
 using System.Linq.Expressions;
 using MongoDB.Driver;
