@@ -33,6 +33,15 @@ class SyncOutboxDao {
         }
     }
 
+    /** True if a not-yet-synced (PENDING_SYNC) operation of this type exists for the entity. */
+    fun hasPending(db: SQLiteDatabase, operationType: OutboxOperationType, entityRef: String): Boolean {
+        val selection = "${SyncOutbox.COL_OPERATION_TYPE} = ? AND ${SyncOutbox.COL_ENTITY_REF} = ? AND ${SyncOutbox.COL_STATUS} = ?"
+        db.query(SyncOutbox.TABLE, arrayOf(SyncOutbox.COL_ID), selection,
+            arrayOf(operationType.name, entityRef, SyncStatus.PENDING_SYNC.name), null, null, null, "1").use { cursor ->
+            return cursor.moveToFirst()
+        }
+    }
+
     fun delete(db: SQLiteDatabase, id: String) {
         db.delete(SyncOutbox.TABLE, "${SyncOutbox.COL_ID} = ?", arrayOf(id))
     }

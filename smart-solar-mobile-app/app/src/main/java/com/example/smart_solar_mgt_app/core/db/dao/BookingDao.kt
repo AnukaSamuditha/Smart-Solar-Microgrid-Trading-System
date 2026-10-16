@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import com.example.smart_solar_mgt_app.core.common.SyncStatus
+import com.example.smart_solar_mgt_app.core.db.DatabaseContract
 import com.example.smart_solar_mgt_app.core.db.DatabaseContract.Bookings
 import com.example.smart_solar_mgt_app.domain.model.Booking
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
@@ -121,6 +122,41 @@ class BookingDao {
      * LocalDbManager.reconcileCreatedBooking). */
     fun delete(db: SQLiteDatabase, bookingId: String) {
         db.delete(Bookings.TABLE, "${Bookings.COL_BOOKING_ID} = ?", arrayOf(bookingId))
+    }
+
+    /** Records that [oldId] (a client-generated temporary id) is now [newId] - see
+     * DatabaseContract.BookingIdAliases. */
+    fun insertAlias(db: SQLiteDatabase, oldId: String, newId: String) {
+        val values = ContentValues().apply {
+            put(DatabaseContract.BookingIdAliases.COL_OLD_ID, oldId)
+            put(DatabaseContract.BookingIdAliases.COL_NEW_ID, newId)
+        }
+        db.insertWithOnConflict(DatabaseContract.BookingIdAliases.TABLE, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    /** The real id that replaced [oldId], or null if [oldId] was never a retired temporary id. */
+    fun resolveAlias(db: SQLiteDatabase, oldId: String): String? {
+        val a = DatabaseContract.BookingIdAliases
+        db.query(a.TABLE, arrayOf(a.COL_NEW_ID), "${a.COL_OLD_ID} = ?", arrayOf(oldId), null, null, null).use { cursor ->
+            return if (cursor.moveToFirst()) cursor.getString(0) else null
+        }
+    }
+
+    /** Overwrites a cached row with the backend's current state (marks it SYNCED). An in-place
+     * UPDATE rather than upsert's REPLACE, because REPLACE is a delete+insert and would cascade
+     * through transactions.booking_id's ON DELETE CASCADE. createdAt is left untouched. */
+    fun updateFromServer(db: SQLiteDatabase, booking: Booking) {
+        val values = ContentValues().apply {
+            put(Bookings.COL_NODE_ID, booking.nodeId)
+            put(Bookings.COL_SLOT_ID, booking.slotId)
+            put(Bookings.COL_BOOKING_DATE, booking.bookingDate)
+            put(Bookings.COL_BOOKING_TIME, booking.bookingTime)
+            put(Bookings.COL_ENERGY_AMOUNT, booking.energyAmount)
+            put(Bookings.COL_STATUS, booking.status.name)
+            put(Bookings.COL_SYNC_STATUS, SyncStatus.SYNCED.name)
+            put(Bookings.COL_UPDATED_AT, booking.updatedAt)
+        }
+        db.update(Bookings.TABLE, values, "${Bookings.COL_BOOKING_ID} = ?", arrayOf(booking.bookingId))
     }
 
     private fun Cursor.toBookingList(): List<Booking> {

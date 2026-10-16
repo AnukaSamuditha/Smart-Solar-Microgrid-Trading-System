@@ -116,6 +116,33 @@ class RemoteReservationRepositoryImpl(
         return RemoteReservationListOutcome.Success(reservations)
     }
 
+    override fun listMine(): RemoteReservationListOutcome = listAllPages("/api/v1/reservations/mine")
+
+    override fun listAll(): RemoteReservationListOutcome = listAllPages("/api/v1/reservations")
+
+    // follows the PagedResult envelope { items, totalCount, page, pageSize } until everything is read
+    private fun listAllPages(path: String): RemoteReservationListOutcome {
+        val reservations = mutableListOf<RemoteReservation>()
+        var page = 1
+        while (page <= MAX_LIST_PAGES) {
+            val result = executeAuthenticated {
+                authenticatedRequest("${ApiConfig.BASE_URL}$path?page=$page&pageSize=$LIST_PAGE_SIZE").build()
+            } ?: return RemoteReservationListOutcome.NetworkFailure("Unable to reach the server")
+
+            if (result.code !in 200..299) {
+                return RemoteReservationListOutcome.NetworkFailure("Server error (${result.code})")
+            }
+
+            val body = JSONObject(result.body)
+            val items = body.getJSONArray("items")
+            for (index in 0 until items.length()) reservations.add(items.getJSONObject(index).toRemoteReservation())
+
+            if (items.length() == 0 || reservations.size >= body.optLong("totalCount")) break
+            page++
+        }
+        return RemoteReservationListOutcome.Success(reservations)
+    }
+
     private fun mapReviewResult(result: HttpResult): RemoteReservationReviewOutcome = when {
         result.code in 200..299 -> RemoteReservationReviewOutcome.Success
         result.code == 404 -> RemoteReservationReviewOutcome.Rejected(RemoteReservationReviewRejection.NOT_FOUND)
@@ -202,5 +229,7 @@ class RemoteReservationRepositoryImpl(
 
     private companion object {
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+        const val LIST_PAGE_SIZE = 100 // the backend's own MaxPageSize clamp
+        const val MAX_LIST_PAGES = 20
     }
 }

@@ -68,12 +68,14 @@ class OperatorBookingsFragment : Fragment(R.layout.fragment_operator_bookings) {
         viewModel.state.observe(viewLifecycleOwner) { state ->
             progress.isVisible = state is OperatorBookingsUiState.Loading
             recyclerView.isVisible = state is OperatorBookingsUiState.Loaded
-            tvEmpty.isVisible = state is OperatorBookingsUiState.EmptyScope || state is OperatorBookingsUiState.NoResults
+            tvEmpty.isVisible = state is OperatorBookingsUiState.EmptyScope || state is OperatorBookingsUiState.NoResults ||
+                state is OperatorBookingsUiState.Error
 
             when (state) {
                 is OperatorBookingsUiState.Loaded -> adapter.submitList(state.items)
                 OperatorBookingsUiState.EmptyScope -> tvEmpty.text = emptyScopeMessage(tabLayout.selectedTabPosition)
                 OperatorBookingsUiState.NoResults -> tvEmpty.text = "No bookings match your search"
+                is OperatorBookingsUiState.Error -> tvEmpty.text = state.message
                 OperatorBookingsUiState.Loading -> Unit
             }
         }

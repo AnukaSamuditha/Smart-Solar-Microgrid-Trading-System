@@ -39,7 +39,7 @@ object ServiceLocator {
 
     val localDbManager: LocalDbManager by lazy { LocalDbManager(appContext) }
     val secureSessionStore: SecureSessionStore by lazy { SecureSessionStore(appContext) }
-    val authRepository: AuthRepository by lazy { AuthRepositoryImpl(localDbManager) }
+    val authRepository: AuthRepository by lazy { AuthRepositoryImpl(localDbManager, syncManager, remoteProsumerRepository) }
     val remoteAuthRepository: RemoteAuthRepository by lazy { RemoteAuthRepositoryImpl(ApiClient.httpClient, secureSessionStore) }
     val remoteProsumerRepository: RemoteProsumerRepository by lazy {
         RemoteProsumerRepositoryImpl(ApiClient.httpClient, secureSessionStore, remoteAuthRepository)
@@ -54,7 +54,7 @@ object ServiceLocator {
         RemoteTransactionRepositoryImpl(ApiClient.httpClient, secureSessionStore, remoteAuthRepository)
     }
     val nodeRepository: NodeRepository by lazy { NodeRepositoryImpl(localDbManager, remoteNodeRepository) }
-    val bookingRepository: BookingRepository by lazy { BookingRepositoryImpl(localDbManager, securityManager, syncManager) }
+    val bookingRepository: BookingRepository by lazy { BookingRepositoryImpl(localDbManager, securityManager, syncManager, remoteReservationRepository) }
     // Server-verified now: an authoritative online round-trip to the backend
     // (RemoteTransactionRepository) instead of the old on-device HMAC+local-SQLite check.
     // TransactionRepositoryImpl and everything above it (including OperatorScanFragment) never

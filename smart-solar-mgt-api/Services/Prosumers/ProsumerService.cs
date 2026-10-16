@@ -269,6 +269,38 @@ public class ProsumerService : IProsumerService
         return ProsumerActionResult.Succeeded;
     }
 
+    // a prosumer editing their own contact details; refuses unless the profile is Active so a
+    // deactivated/rejected account can't keep changing its record through a still-valid token
+    public async Task<ProsumerActionResult> UpdateOwnProfileAsync(
+        string nic,
+        string fullName,
+        string phone,
+        string address,
+        CancellationToken cancellationToken = default)
+    {
+        var prosumer = await GetByNicAsync(nic, cancellationToken);
+        if (prosumer is null)
+        {
+            return ProsumerActionResult.NotFound;
+        }
+
+        if (prosumer.Status != ProsumerStatus.Active)
+        {
+            return ProsumerActionResult.NotActive;
+        }
+
+        var filter = Builders<Prosumer>.Filter.Eq(p => p.Nic, prosumer.Nic);
+        var update = Builders<Prosumer>.Update
+            .Set(p => p.FullName, fullName.Trim())
+            .Set(p => p.Phone, phone.Trim())
+            .Set(p => p.Address, address.Trim())
+            .Set(p => p.UpdatedAt, DateTime.UtcNow)
+            .Set(p => p.UpdatedBy, prosumer.Nic);
+
+        await _mongoContext.Prosumers.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+        return ProsumerActionResult.Succeeded;
+    }
+
     // deactivate a prosumer profile, blocking it from future mobile-app authentication
     public async Task<ProsumerActionResult> DeactivateAsync(string nic, string performedByUserId, CancellationToken cancellationToken = default) =>
         await SetStatusAsync(nic, ProsumerStatus.Deactivated, performedByUserId, cancellationToken);

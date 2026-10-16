@@ -4,6 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smart_solar_mgt_app.core.common.AppResult
 import com.example.smart_solar_mgt_app.data.repository.BookingRepository
 import com.example.smart_solar_mgt_app.domain.model.BookingListItem
 import com.example.smart_solar_mgt_app.domain.model.BookingStatus
@@ -31,8 +32,14 @@ class OperatorBookingsViewModel(
     fun load() {
         _state.value = OperatorBookingsUiState.Loading
         viewModelScope.launch {
-            allItems = withContext(Dispatchers.IO) { bookingRepository.getAllBookingListItems() }
-            applyFilters()
+            when (val result = withContext(Dispatchers.IO) { bookingRepository.fetchAllBookingListItems() }) {
+                is AppResult.Success -> {
+                    allItems = result.data
+                    applyFilters()
+                }
+                is AppResult.Failure ->
+                    _state.value = OperatorBookingsUiState.Error("Can't reach the server. Check your connection and try again.")
+            }
         }
     }
 

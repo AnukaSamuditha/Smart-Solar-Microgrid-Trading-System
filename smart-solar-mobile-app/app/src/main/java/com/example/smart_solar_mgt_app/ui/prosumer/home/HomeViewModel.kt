@@ -30,6 +30,17 @@ class HomeViewModel(
         viewModelScope.launch {
             val newState = withContext(Dispatchers.IO) { buildState(nic) }
             _state.value = newState
+
+            // pull the server's reservation state (e.g. a web approval) and re-render if it changed
+            val changed = withContext(Dispatchers.IO) {
+                // evaluated both (no short-circuit): the welcome name comes from the profile cache
+                val profileChanged = authRepository.refreshProfileFromServer(nic)
+                val bookingsChanged = bookingRepository.refreshFromServer(nic)
+                profileChanged || bookingsChanged
+            }
+            if (changed) {
+                _state.value = withContext(Dispatchers.IO) { buildState(nic) }
+            }
         }
     }
 

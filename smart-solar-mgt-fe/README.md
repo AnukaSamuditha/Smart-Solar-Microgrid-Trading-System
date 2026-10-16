@@ -19,7 +19,7 @@ npm install
 cp .env.example .env.local
 ```
 
-`NEXT_PUBLIC_API_URL` must match the running backend, and that origin must be listed in the backend's `Cors:AllowedOrigins`.
+`API_URL` must point at the running backend. The browser calls `/api/v1/*` on this app's own origin and `next.config.ts` proxies it there, so no CORS entry is needed. Restart `npm run dev` after changing it.
 
 ## 3. Run the dev server
 
@@ -57,14 +57,13 @@ Components call hooks, hooks call `lib/api/`, `lib/api/` calls `apiClient`. Neve
 ## Auth model
 
 - Backend sets `HttpOnly` cookies (`access_token`, `refresh_token`) on login/refresh — never readable from this app's JS.
-- `apiClient` sends cookies automatically (`withCredentials: true`) and attaches the `X-XSRF-TOKEN` header on mutating requests from the readable `XSRF-TOKEN` cookie.
+- `apiClient` calls this app's own origin (proxied to the API), so cookies are first-party and sent automatically; it attaches the `X-XSRF-TOKEN` header on mutating requests from the readable `XSRF-TOKEN` cookie.
 - On a 401, `apiClient` attempts one silent `POST /auth/refresh` and retries the original request.
 - Session state is bootstrapped client-side via `useMe()` (`GET /users/me`) — **not** Next.js middleware, since middleware can't see cookies set on the API's own origin.
 - No protected-route shell/dashboard exists yet beyond the login and reset-password pages — expected, not a gap.
 
 ## Troubleshooting
 
-- **CORS error in browser console**: backend's `Cors:AllowedOrigins` doesn't include this app's origin.
-- **Login succeeds but `/me` fails**: check the backend is actually setting cookies (inspect `Set-Cookie` in Network tab) and `NEXT_PUBLIC_API_URL` is correct.
+- **Login succeeds but `/me` fails**: check the backend is actually setting cookies (inspect `Set-Cookie` in Network tab) and `API_URL` is correct (it's baked in at build time — rebuild after changing it).
 - **403 on submit**: `XSRF-TOKEN` cookie missing or stale — log in again.
 - **Form won't submit / fields look empty on submit**: usually a broken `ref` on a form input — shadcn inputs must be `forwardRef`-wrapped for `react-hook-form`.

@@ -9,6 +9,8 @@ import com.example.smart_solar_mgt_app.core.network.RemoteProsumerRegisterOutcom
 import com.example.smart_solar_mgt_app.core.network.RemoteProsumerRegisterRejection
 import com.example.smart_solar_mgt_app.core.network.RemoteProsumerReviewOutcome
 import com.example.smart_solar_mgt_app.core.network.RemoteProsumerReviewRejection
+import com.example.smart_solar_mgt_app.core.network.RemoteProsumerUpdateOutcome
+import com.example.smart_solar_mgt_app.core.network.RemoteProsumerUpdateRejection
 import com.example.smart_solar_mgt_app.core.network.optNullableString
 import com.example.smart_solar_mgt_app.core.security.SecureSessionStore
 import java.io.IOException
@@ -102,16 +104,40 @@ class RemoteProsumerRepositoryImpl(
             return RemoteProsumerProfileOutcome.NetworkFailure("Server error (${result.code})")
         }
 
-        val json = JSONObject(result.body)
-        val profile = ProsumerProfile(
-            nic = json.getString("nic"),
-            fullName = json.optNullableString("fullName"),
-            email = json.getString("email"),
-            phone = json.optNullableString("phone"),
-            address = json.optNullableString("address")
-        )
-        return RemoteProsumerProfileOutcome.Success(profile)
+        return RemoteProsumerProfileOutcome.Success(JSONObject(result.body).toProsumerProfile())
     }
+
+    override fun updateMyProfile(fullName: String, phone: String, address: String): RemoteProsumerUpdateOutcome {
+        val requestBody = JSONObject()
+            .put("fullName", fullName)
+            .put("phone", phone)
+            .put("address", address)
+            .toString()
+            .toRequestBody(JSON_MEDIA_TYPE)
+
+        val result = executeAuthenticated {
+            authenticatedRequest("${ApiConfig.BASE_URL}/api/v1/prosumers/me").put(requestBody).build()
+        } ?: return RemoteProsumerUpdateOutcome.NetworkFailure("Unable to reach the server")
+
+        return when {
+            result.code in 200..299 -> RemoteProsumerUpdateOutcome.Success(JSONObject(result.body).toProsumerProfile())
+            result.code == 400 -> RemoteProsumerUpdateOutcome.Rejected(RemoteProsumerUpdateRejection.INVALID)
+            result.code == 401 || result.code == 403 -> RemoteProsumerUpdateOutcome.Rejected(RemoteProsumerUpdateRejection.UNAUTHORIZED)
+            result.code == 404 -> RemoteProsumerUpdateOutcome.Rejected(RemoteProsumerUpdateRejection.NOT_FOUND)
+            result.code == 409 -> RemoteProsumerUpdateOutcome.Rejected(RemoteProsumerUpdateRejection.NOT_ACTIVE)
+            else -> RemoteProsumerUpdateOutcome.NetworkFailure("Server error (${result.code})")
+        }
+    }
+
+    // see ProsumerResponse on the backend
+    private fun JSONObject.toProsumerProfile() = ProsumerProfile(
+        nic = getString("nic"),
+        fullName = optNullableString("fullName"),
+        email = getString("email"),
+        phone = optNullableString("phone"),
+        address = optNullableString("address"),
+        status = optString("status")
+    )
 
     private fun mapReviewResult(code: Int): RemoteProsumerReviewOutcome = when {
         code in 200..299 -> RemoteProsumerReviewOutcome.Success

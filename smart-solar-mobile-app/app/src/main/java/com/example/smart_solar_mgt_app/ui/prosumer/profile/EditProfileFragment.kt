@@ -64,6 +64,9 @@ class EditProfileFragment : Fragment(R.layout.fragment_edit_profile) {
         etPhone = view.findViewById(R.id.etPhone)
         etAddress = view.findViewById(R.id.etAddress)
 
+        // email is the login identifier and can't be changed from the app (see AuthRepositoryImpl.updateProfile)
+        etEmail.isEnabled = false
+
         btnSaveProfile = view.findViewById(R.id.btnSaveProfile)
         progressEditProfile = view.findViewById(R.id.progressEditProfile)
         val btnCancelEdit = view.findViewById<MaterialButton>(R.id.btnCancelEdit)

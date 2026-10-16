@@ -2,7 +2,6 @@ import axios, { type AxiosRequestConfig } from "axios"
 
 import { toApiError } from "@/lib/api/errors"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5011"
 const CSRF_COOKIE_NAME = "XSRF-TOKEN"
 const CSRF_HEADER_NAME = "X-XSRF-TOKEN"
 const SAFE_METHODS = new Set(["get", "head", "options"])
@@ -15,12 +14,10 @@ function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null
 }
 
-// the browser attaches the HttpOnly access/refresh cookies automatically; withCredentials
-// is what makes the browser both send and accept them on cross-origin requests to the API
-export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-})
+// requests go to this app's own origin and are proxied to the API by the /api/v1/* rewrite in
+// next.config.ts, so the browser treats the HttpOnly access/refresh cookies as first-party and
+// attaches them automatically
+export const apiClient = axios.create()
 
 // echo the readable CSRF cookie back as a header on mutating requests (double-submit pattern)
 apiClient.interceptors.request.use((config) => {

@@ -8,6 +8,7 @@ import com.example.smart_solar_mgt_app.domain.model.BatterySlot
 import com.example.smart_solar_mgt_app.domain.model.BatterySlotStatus
 import com.example.smart_solar_mgt_app.domain.model.MicrogridNode
 import com.example.smart_solar_mgt_app.domain.model.NodeStatus
+import com.example.smart_solar_mgt_app.domain.model.Role
 import java.io.IOException
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -20,7 +21,14 @@ class RemoteNodeRepositoryImpl(
 ) : RemoteNodeRepository {
 
     override fun listActiveNodes(): RemoteNodeListOutcome {
-        val result = executeAuthenticated { authenticatedRequest("${ApiConfig.BASE_URL}/api/v1/nodes/mine?pageSize=100").build() }
+        // /nodes/mine is Prosumer-only (403 for staff) - a Grid Operator's map reads the staff
+        // list endpoint, filtered to Active so both roles see the same set
+        val path = if (secureSessionStore.getSession()?.role == Role.GRID_OPERATOR) {
+            "/api/v1/nodes?status=Active&pageSize=100"
+        } else {
+            "/api/v1/nodes/mine?pageSize=100"
+        }
+        val result = executeAuthenticated { authenticatedRequest("${ApiConfig.BASE_URL}$path").build() }
             ?: return RemoteNodeListOutcome.NetworkFailure("Unable to reach the server")
 
         if (result.code !in 200..299) {

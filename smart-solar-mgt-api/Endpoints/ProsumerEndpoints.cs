@@ -29,6 +29,7 @@ public static class ProsumerEndpoints
         group.MapPost("/", CreateProsumerAsync).RequireAuthorization(ProsumerManagementPolicy);
         group.MapPost("/register", RegisterProsumerAsync); // public - self-registration from the mobile app
         group.MapGet("/me", GetMyProsumerProfileAsync).RequireAuthorization(RoleNames.Prosumer);
+        group.MapPut("/me", UpdateMyProsumerProfileAsync).RequireAuthorization(RoleNames.Prosumer);
         group.MapGet("/", ListProsumersAsync).RequireAuthorization(ProsumerManagementPolicy);
         group.MapPut("/{nic}", UpdateProsumerAsync).RequireAuthorization(ProsumerManagementPolicy);
         group.MapPatch("/{nic}/approve", ApproveProsumerAsync).RequireAuthorization(ProsumerManagementPolicy);
@@ -83,6 +84,48 @@ public static class ProsumerEndpoints
         if (string.IsNullOrWhiteSpace(nic))
         {
             return Results.Unauthorized();
+        }
+
+        var prosumer = await prosumerService.GetByNicAsync(nic, cancellationToken);
+        return prosumer is null ? Results.NotFound() : Results.Ok(ProsumerResponse.FromEntity(prosumer));
+    }
+
+    // a logged-in prosumer editing their own name/phone/address. NIC comes from the JWT's sub
+    // claim (never the route), so a prosumer can only ever change their own record.
+    private static async Task<IResult> UpdateMyProsumerProfileAsync(
+        UpdateMyProfileRequest request,
+        ClaimsPrincipal principal,
+        IProsumerService prosumerService,
+        CancellationToken cancellationToken)
+    {
+        var nic = principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (string.IsNullOrWhiteSpace(nic))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.FullName) || request.FullName.Trim().Length < 2)
+        {
+            return Results.BadRequest(new { error = "FullNameRequired" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Phone))
+        {
+            return Results.BadRequest(new { error = "PhoneRequired" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Address))
+        {
+            return Results.BadRequest(new { error = "AddressRequired" });
+        }
+
+        var result = await prosumerService.UpdateOwnProfileAsync(
+            nic, request.FullName, request.Phone, request.Address, cancellationToken);
+        if (result != ProsumerActionResult.Succeeded)
+        {
+            return result == ProsumerActionResult.NotActive
+                ? Results.Conflict(new { error = "NotActive" })
+                : MapActionResult(result);
         }
 
         var prosumer = await prosumerService.GetByNicAsync(nic, cancellationToken);

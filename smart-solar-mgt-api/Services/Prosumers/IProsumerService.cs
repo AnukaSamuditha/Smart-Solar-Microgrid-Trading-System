@@ -49,6 +49,15 @@ public interface IProsumerService
         string performedByUserId,
         CancellationToken cancellationToken = default);
 
+    // a prosumer editing their own name/phone/address (email and NIC are immutable here); only an
+    // Active profile may do so
+    Task<ProsumerActionResult> UpdateOwnProfileAsync(
+        string nic,
+        string fullName,
+        string phone,
+        string address,
+        CancellationToken cancellationToken = default);
+
     Task<ProsumerActionResult> DeactivateAsync(string nic, string performedByUserId, CancellationToken cancellationToken = default);
 
     Task<ProsumerActionResult> ReactivateAsync(string nic, string performedByUserId, CancellationToken cancellationToken = default);
@@ -60,7 +69,8 @@ public enum ProsumerActionResult
 {
     Succeeded,
     NotFound,
-    EmailConflict
+    EmailConflict,
+    NotActive
 }
 
 public enum ProsumerCreateResult

@@ -33,7 +33,7 @@ The app itself is a `create-next-app` scaffold (App Router, TypeScript, Tailwind
 
 - `app/layout.tsx` — root layout, loads Geist fonts via `next/font/google`, wraps `children` in `QueryClientProviderCom`
 - `providers/QueryClientProviderCom.tsx` — client component wrapping TanStack Query's `QueryClientProvider`; the `QueryClient` instance is created with `useState` (per-mount, not module-level) so it isn't shared across requests/users under SSR
-- `providers/api-client.ts` — the shared axios instance (`withCredentials: true`) all API functions call through. Attaches the `X-XSRF-TOKEN` header (double-submit CSRF) on mutating requests, and on a 401 attempts one silent `/auth/refresh` before retrying the original request.
+- `providers/api-client.ts` — the shared axios instance all API functions call through, using relative URLs on this app's own origin. Attaches the `X-XSRF-TOKEN` header (double-submit CSRF) on mutating requests, and on a 401 attempts one silent `/auth/refresh` before retrying the original request.
 - `app/page.tsx` — home page (still the default create-next-app boilerplate content)
 - `app/(auth)/login`, `app/(auth)/reset-password` — sign-in and invitation-acceptance pages, backed by `components/login-form.tsx` / `components/reset-password-form.tsx`
 - `app/globals.css` — Tailwind entry point + shadcn theme tokens (CSS variables, `oklch` palette, light/dark via `.dark` class)
@@ -49,9 +49,11 @@ Add more shadcn components with `npx shadcn@latest add <component>`.
 
 ## Backend integration
 
-The backend (`smart-solar-mgt-api`) is called **directly from the browser** — there is no
-BFF/proxy layer in this Next.js app. `NEXT_PUBLIC_API_URL` (see `.env.example`) points at it and
-must be listed in that API's `Cors:AllowedOrigins`. Auth is HttpOnly-cookie based
+The browser calls `/api/v1/*` on this app's own origin and a `rewrites()` entry in
+`next.config.ts` proxies it to the backend (`smart-solar-mgt-api`) at `API_URL` (see
+`.env.example`; read at build time, so it's a Docker build arg). This keeps the API's
+`SameSite=Strict` cookies and the readable `XSRF-TOKEN` cookie first-party even when the API is
+hosted on a different site, and means no CORS entry is needed. Auth is HttpOnly-cookie based
 (`access_token`, `refresh_token`, set by the API — see its `CLAUDE.md` and
 `docs/authentication-implementation-approach.md`), so the tokens are never readable from this
 app's JS; session state is bootstrapped client-side via `useMe()` (`GET /api/v1/users/me`), not

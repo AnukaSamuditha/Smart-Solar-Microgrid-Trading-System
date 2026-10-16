@@ -4,6 +4,7 @@ import com.example.smart_solar_mgt_app.core.network.RemoteProsumerListOutcome
 import com.example.smart_solar_mgt_app.core.network.RemoteProsumerProfileOutcome
 import com.example.smart_solar_mgt_app.core.network.RemoteProsumerRegisterOutcome
 import com.example.smart_solar_mgt_app.core.network.RemoteProsumerReviewOutcome
+import com.example.smart_solar_mgt_app.core.network.RemoteProsumerUpdateOutcome
 
 /** Prosumer profile calls against the real Web Service (smart-solar-mgt-api). */
 interface RemoteProsumerRepository {
@@ -21,4 +22,8 @@ interface RemoteProsumerRepository {
 
     /** The logged-in prosumer's own profile - GET /api/v1/prosumers/me. */
     fun getMyProfile(): RemoteProsumerProfileOutcome
+
+    /** The logged-in prosumer editing their own name/phone/address - PUT /api/v1/prosumers/me.
+     * Email is immutable (it's the login identifier). */
+    fun updateMyProfile(fullName: String, phone: String, address: String): RemoteProsumerUpdateOutcome
 }

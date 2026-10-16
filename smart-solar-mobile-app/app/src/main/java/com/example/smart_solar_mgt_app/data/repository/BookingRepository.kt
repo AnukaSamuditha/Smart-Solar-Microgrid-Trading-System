@@ -19,6 +19,13 @@ interface BookingRepository {
 
     fun getBookingById(bookingId: String): Booking?
 
+    /** Pull half of reservation sync (Prosumer): fetches this prosumer's reservations from the
+     * backend and reconciles the local cache, so status changes made elsewhere (e.g. a Grid
+     * Operator approving on the web) show up here. Blocking network call - run off the main
+     * thread. Returns true if the local data changed; false if nothing changed or the server
+     * couldn't be reached (the cached data simply stays as-is). Never throws for network failure. */
+    fun refreshFromServer(nic: String): Boolean
+
     fun getBookingsByProsumer(nic: String): List<Booking>
 
     /** Display-ready, joined-with-station-name rows for the My Bookings screen. */
@@ -63,6 +70,8 @@ interface BookingRepository {
      * terminal state distinct from a prosumer-initiated cancel). */
     fun rejectBooking(bookingId: String): AppResult<Unit>
 
-    /** GRID_OPERATOR only. Cross-prosumer, every status - the read-only Bookings overview tab. */
-    fun getAllBookingListItems(): List<BookingListItem>
+    /** GRID_OPERATOR only. Cross-prosumer, every status - the read-only Bookings overview tab.
+     * Fetched live from the backend (operators don't cache other prosumers' reservations
+     * locally); Failure(Unknown) if the server can't be reached. Blocking - run off the main thread. */
+    fun fetchAllBookingListItems(): AppResult<List<BookingListItem>>
 }

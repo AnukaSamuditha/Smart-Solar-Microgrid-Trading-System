@@ -17,7 +17,9 @@ enum class OutboxOperationType {
     RESERVATION_UPDATE,
     RESERVATION_CANCEL,
     RESERVATION_APPROVE,
-    RESERVATION_REJECT
+    RESERVATION_REJECT,
+    /** A prosumer's own name/phone/address edit (PUT /api/v1/prosumers/me); entityRef is their NIC. */
+    PROFILE_UPDATE
 }
 
 data class OutboxOperation(

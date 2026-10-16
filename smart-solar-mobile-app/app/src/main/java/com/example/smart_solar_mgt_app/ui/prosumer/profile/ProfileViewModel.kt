@@ -30,6 +30,15 @@ class ProfileViewModel(
                 // Session points at a user row that no longer exists - a broken invariant, not a normal error.
                 ProfileUiState.Error("Your session is no longer valid. Please log in again.")
             }
+
+            // cache shown first, then pull the server's profile/status (e.g. a web edit or
+            // deactivation) and re-render only if something changed
+            if (user != null) {
+                val changed = withContext(Dispatchers.IO) { authRepository.refreshProfileFromServer(nic) }
+                if (changed) {
+                    withContext(Dispatchers.IO) { authRepository.findUserByNic(nic) }?.let { _state.value = ProfileUiState.Loaded(it) }
+                }
+            }
         }
     }
 

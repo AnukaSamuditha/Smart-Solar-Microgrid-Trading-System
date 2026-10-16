@@ -24,6 +24,11 @@ val localProperties = Properties().apply {
 }
 val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL") ?: "http://10.0.2.2:5011"
 
+// Release signing credentials live in the same gitignored local.properties. If RELEASE_STORE_FILE
+// isn't set, the release build type stays unsigned (assembleRelease still works, but the APK
+// can't be installed until it's signed) so debug builds and fresh clones aren't broken.
+val releaseStoreFile: String? = localProperties.getProperty("RELEASE_STORE_FILE")
+
 android {
     namespace = "com.example.smart_solar_mgt_app"
     compileSdk {
@@ -45,10 +50,24 @@ android {
         buildConfig = true
     }
 
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
+                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             optimization {
                 enable = false
+            }
+            if (releaseStoreFile != null) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
     }

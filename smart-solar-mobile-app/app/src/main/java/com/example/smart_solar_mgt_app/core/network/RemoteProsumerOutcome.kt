@@ -59,5 +59,21 @@ data class ProsumerProfile(
     val fullName: String?,
     val email: String,
     val phone: String?,
-    val address: String?
+    val address: String?,
+    /** The backend's ProsumerStatus name (Active, Deactivated, PendingApproval, ...). */
+    val status: String
 )
+
+/** Result of PUT /api/v1/prosumers/me - a prosumer editing their own name/phone/address. */
+sealed class RemoteProsumerUpdateOutcome {
+    data class Success(val profile: ProsumerProfile) : RemoteProsumerUpdateOutcome()
+    data class Rejected(val reason: RemoteProsumerUpdateRejection) : RemoteProsumerUpdateOutcome()
+    data class NetworkFailure(val message: String) : RemoteProsumerUpdateOutcome()
+}
+
+enum class RemoteProsumerUpdateRejection {
+    INVALID,
+    NOT_ACTIVE,
+    NOT_FOUND,
+    UNAUTHORIZED
+}

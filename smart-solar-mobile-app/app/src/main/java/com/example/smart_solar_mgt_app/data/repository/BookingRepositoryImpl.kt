@@ -4,6 +4,8 @@ import com.example.smart_solar_mgt_app.core.common.AppError
 import com.example.smart_solar_mgt_app.core.common.AppResult
 import com.example.smart_solar_mgt_app.core.common.SyncStatus
 import com.example.smart_solar_mgt_app.core.db.LocalDbManager
+import com.example.smart_solar_mgt_app.core.network.RemoteReservation
+import com.example.smart_solar_mgt_app.core.network.RemoteReservationListOutcome
 import com.example.smart_solar_mgt_app.core.security.SecurityManager
 import com.example.smart_solar_mgt_app.core.sync.SyncManager
 import com.example.smart_solar_mgt_app.domain.model.Booking
@@ -44,7 +46,8 @@ import org.json.JSONObject
 class BookingRepositoryImpl(
     private val localDbManager: LocalDbManager,
     private val securityManager: SecurityManager,
-    private val syncManager: SyncManager
+    private val syncManager: SyncManager,
+    private val remoteReservationRepository: RemoteReservationRepository
 ) : BookingRepository {
 
     override fun getStatusCounts(nic: String): Map<BookingStatus, Int> =
@@ -57,6 +60,21 @@ class BookingRepositoryImpl(
         localDbManager.getApprovedFutureCount(nic, DateFormats.nowDateString(), DateFormats.nowTimeString())
 
     override fun getBookingById(bookingId: String): Booking? = localDbManager.getBookingById(bookingId)
+
+    override fun refreshFromServer(nic: String): Boolean {
+        val outcome = try {
+            remoteReservationRepository.listMine()
+        } catch (e: Exception) {
+            // a malformed response is no reason to take the screen down - keep showing the cache
+            return false
+        }
+        if (outcome !is RemoteReservationListOutcome.Success) return false
+        return try {
+            localDbManager.applyServerReservations(nic, outcome.reservations.map { it.toSyncedBooking() })
+        } catch (e: Exception) {
+            false
+        }
+    }
 
     override fun getBookingsByProsumer(nic: String): List<Booking> = localDbManager.getBookingsByProsumer(nic)
 
@@ -161,9 +179,36 @@ class BookingRepositoryImpl(
         return AppResult.Success(Unit)
     }
 
-    override fun getAllBookingListItems(): List<BookingListItem> {
+    override fun fetchAllBookingListItems(): AppResult<List<BookingListItem>> {
         securityManager.requireRole(Role.GRID_OPERATOR)
-        return localDbManager.getAllBookingListItems()
+        val outcome = try {
+            remoteReservationRepository.listAll()
+        } catch (e: Exception) {
+            return AppResult.Failure(AppError.Unknown("Unexpected response from the server."))
+        }
+        return when (outcome) {
+            is RemoteReservationListOutcome.Success -> AppResult.Success(
+                outcome.reservations
+                    .map { it.toBookingListItem() }
+                    .sortedWith(compareByDescending<BookingListItem> { it.bookingDate }.thenByDescending { it.bookingTime })
+            )
+            is RemoteReservationListOutcome.NetworkFailure -> AppResult.Failure(AppError.Unknown(outcome.message))
+        }
+    }
+
+    private fun RemoteReservation.toBookingListItem(): BookingListItem {
+        val booking = toSyncedBooking()
+        return BookingListItem(
+            bookingId = booking.bookingId,
+            prosumerNic = booking.prosumerNic,
+            nodeId = booking.nodeId,
+            stationName = nodeName ?: booking.nodeId,
+            bookingDate = booking.bookingDate,
+            bookingTime = booking.bookingTime,
+            energyAmount = booking.energyAmount,
+            status = booking.status,
+            syncStatus = booking.syncStatus
+        )
     }
 
     // combines the form's separate date+time fields using the device's local timezone, matching

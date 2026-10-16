@@ -37,6 +37,7 @@ class DatabaseHelper(context: Context) :
         db.execSQL(DatabaseContract.SyncOutbox.CREATE_TABLE)
         db.execSQL(DatabaseContract.SyncOutbox.CREATE_INDEX_STATUS)
         db.execSQL(DatabaseContract.CachedNodes.CREATE_TABLE)
+        db.execSQL(DatabaseContract.BookingIdAliases.CREATE_TABLE)
 
         seedDemoProsumer(db)
     }
@@ -79,6 +80,15 @@ class DatabaseHelper(context: Context) :
         }
         if (oldVersion < 8) {
             migrateSyncOutboxAddReservationOperationTypes(db)
+        }
+        if (oldVersion < 9) {
+            // Additive only - lets a screen holding a client-generated temporary booking id keep
+            // resolving it after the backend's real id replaces it (see BookingIdAliases).
+            db.execSQL(DatabaseContract.BookingIdAliases.CREATE_TABLE)
+        }
+        if (oldVersion < 10) {
+            // Adds PROFILE_UPDATE to the outbox's operation_type CHECK (prosumer profile edits now sync).
+            migrateSyncOutboxAddProfileUpdateType(db)
         }
         // Future schema changes land here as further incremental `if (oldVersion < N)` steps,
         // never a single drop-and-recreate of the whole database.
@@ -258,6 +268,50 @@ class DatabaseHelper(context: Context) :
                         'PROSUMER_REGISTER','PROSUMER_APPROVE','PROSUMER_DENY',
                         'RESERVATION_CREATE','RESERVATION_UPDATE','RESERVATION_CANCEL',
                         'RESERVATION_APPROVE','RESERVATION_REJECT'
+                    )),
+                ${s.COL_ENTITY_REF} TEXT NOT NULL,
+                ${s.COL_PAYLOAD_JSON} TEXT NOT NULL,
+                ${s.COL_STATUS} TEXT NOT NULL DEFAULT 'PENDING_SYNC'
+                    CHECK(${s.COL_STATUS} IN ('PENDING_SYNC','SYNC_FAILED')),
+                ${s.COL_ATTEMPT_COUNT} INTEGER NOT NULL DEFAULT 0,
+                ${s.COL_LAST_ERROR} TEXT,
+                ${s.COL_CREATED_AT} INTEGER NOT NULL,
+                ${s.COL_UPDATED_AT} INTEGER NOT NULL
+            )
+            """
+        )
+
+        db.execSQL(
+            """
+            INSERT INTO sync_outbox_new (
+                ${s.COL_ID}, ${s.COL_OPERATION_TYPE}, ${s.COL_ENTITY_REF}, ${s.COL_PAYLOAD_JSON},
+                ${s.COL_STATUS}, ${s.COL_ATTEMPT_COUNT}, ${s.COL_LAST_ERROR}, ${s.COL_CREATED_AT}, ${s.COL_UPDATED_AT}
+            )
+            SELECT
+                ${s.COL_ID}, ${s.COL_OPERATION_TYPE}, ${s.COL_ENTITY_REF}, ${s.COL_PAYLOAD_JSON},
+                ${s.COL_STATUS}, ${s.COL_ATTEMPT_COUNT}, ${s.COL_LAST_ERROR}, ${s.COL_CREATED_AT}, ${s.COL_UPDATED_AT}
+            FROM ${s.TABLE}
+            """
+        )
+
+        db.execSQL("DROP TABLE ${s.TABLE}")
+        db.execSQL("ALTER TABLE sync_outbox_new RENAME TO ${s.TABLE}")
+        db.execSQL(s.CREATE_INDEX_STATUS)
+    }
+
+    // v9 -> v10: same table-rebuild technique as the v7 -> v8 step above, widening the CHECK again.
+    private fun migrateSyncOutboxAddProfileUpdateType(db: SQLiteDatabase) {
+        val s = DatabaseContract.SyncOutbox
+
+        db.execSQL(
+            """
+            CREATE TABLE sync_outbox_new (
+                ${s.COL_ID} TEXT PRIMARY KEY,
+                ${s.COL_OPERATION_TYPE} TEXT NOT NULL
+                    CHECK(${s.COL_OPERATION_TYPE} IN (
+                        'PROSUMER_REGISTER','PROSUMER_APPROVE','PROSUMER_DENY',
+                        'RESERVATION_CREATE','RESERVATION_UPDATE','RESERVATION_CANCEL',
+                        'RESERVATION_APPROVE','RESERVATION_REJECT','PROFILE_UPDATE'
                     )),
                 ${s.COL_ENTITY_REF} TEXT NOT NULL,
                 ${s.COL_PAYLOAD_JSON} TEXT NOT NULL,

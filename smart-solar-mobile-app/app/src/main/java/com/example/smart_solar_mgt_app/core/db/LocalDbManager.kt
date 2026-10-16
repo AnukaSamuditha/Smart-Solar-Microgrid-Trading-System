@@ -55,6 +55,8 @@ class LocalDbManager(context: Context) {
     fun upsertProsumerProfileCache(nic: String, fullName: String, email: String, phone: String?, address: String?) {
         val db = helper.writableDatabase
         val existing = userDao.getByNic(db, nic)
+        // an unsynced local edit wins over the (older) server copy this login just fetched
+        if (existing != null && hasPendingProfileUpdate(nic)) return
         val cached = User(
             nic = nic,
             name = fullName,
@@ -68,9 +70,43 @@ class LocalDbManager(context: Context) {
         if (existing != null) userDao.update(db, cached) else userDao.insert(db, cached)
     }
 
+    /** True if this device still has a profile edit queued for [nic] that hasn't reached the backend. */
+    fun hasPendingProfileUpdate(nic: String): Boolean =
+        syncOutboxDao.hasPending(helper.readableDatabase, OutboxOperationType.PROFILE_UPDATE, nic)
+
+    /**
+     * Pull half of profile sync: overwrites the cached profile fields (and account status, when
+     * the server's is authoritative) with the backend's. Skipped entirely while a local edit is
+     * still queued, so an unsynced edit is never clobbered by a stale server copy. Never touches
+     * passwordHash. [serverStatus] null means "leave the local status alone". Returns true if
+     * anything changed.
+     */
+    fun applyServerProfile(nic: String, fullName: String, email: String, phone: String?, address: String?, serverStatus: AccountStatus?): Boolean {
+        if (hasPendingProfileUpdate(nic)) return false
+        val db = helper.writableDatabase
+        val existing = userDao.getByNic(db, nic) ?: return false
+        val updated = existing.copy(
+            name = fullName,
+            email = email,
+            phone = phone,
+            address = address,
+            accountStatus = serverStatus ?: existing.accountStatus
+        )
+        if (updated == existing) return false
+        userDao.update(db, updated)
+        return true
+    }
+
     // ---- Bookings (read + write-through cache from RemoteReservationRepository) ----
 
-    fun getBookingById(bookingId: String): Booking? = bookingDao.getById(helper.readableDatabase, bookingId)
+    // falls back to the alias table so a screen still holding a retired client-generated id
+    // (see reconcileCreatedBooking) resolves to the same reservation under its real id
+    fun getBookingById(bookingId: String): Booking? {
+        val db = helper.readableDatabase
+        bookingDao.getById(db, bookingId)?.let { return it }
+        val realId = bookingDao.resolveAlias(db, bookingId) ?: return null
+        return bookingDao.getById(db, realId)
+    }
     fun getBookingsByProsumer(nic: String): List<Booking> = bookingDao.getByProsumer(helper.readableDatabase, nic)
     fun getBookingsByStatus(status: BookingStatus): List<Booking> = bookingDao.getByStatus(helper.readableDatabase, status)
     fun getPendingSyncBookings(): List<Booking> = bookingDao.getPendingSync(helper.readableDatabase)
@@ -83,9 +119,6 @@ class LocalDbManager(context: Context) {
     /** Single JOIN query backing the whole My Bookings screen - tabs/search are applied in-memory on top of this. */
     fun getBookingListItems(nic: String): List<BookingListItem> =
         queryBookingListItems(whereProsumerNic = nic)
-
-    /** Cross-prosumer variant backing the Grid Operator's Bookings overview - same JOIN, no nic filter. */
-    fun getAllBookingListItems(): List<BookingListItem> = queryBookingListItems(whereProsumerNic = null)
 
     // LEFT JOIN (not JOIN) against the node cache: a booking's node may not be in this device's
     // cache (e.g. fresh install, cache cleared, or a node this device never browsed) - falling
@@ -298,11 +331,53 @@ class LocalDbManager(context: Context) {
         try {
             bookingDao.delete(db, oldLocalId)
             bookingDao.upsert(db, confirmed)
+            bookingDao.insertAlias(db, oldLocalId, confirmed.bookingId)
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()
         }
     }
+
+    /**
+     * Pull half of reservation sync: reconciles this prosumer's local `bookings` cache against the
+     * backend's authoritative list (GET /reservations/mine). Rows with a local change still
+     * waiting to be pushed (PENDING_SYNC) are left alone so an in-flight create/reschedule/cancel
+     * is never clobbered by a stale server snapshot - the check is re-done per row inside the
+     * transaction. Everything else is overwritten with the server's state (a SYNC_FAILED row has,
+     * by definition, diverged from what the server accepted). Rows the server doesn't know about
+     * (unsynced temporary-id creates) are never touched. Returns true if anything changed.
+     */
+    fun applyServerReservations(nic: String, serverBookings: List<Booking>): Boolean {
+        val db = helper.writableDatabase
+        var changed = false
+        db.beginTransaction()
+        try {
+            for (server in serverBookings) {
+                if (server.prosumerNic != nic) continue
+                val local = bookingDao.getById(db, server.bookingId)
+                when {
+                    local == null -> {
+                        bookingDao.insert(db, server)
+                        changed = true
+                    }
+                    local.syncStatus == SyncStatus.PENDING_SYNC -> Unit
+                    local.matchesServerState(server) && local.syncStatus == SyncStatus.SYNCED -> Unit
+                    else -> {
+                        bookingDao.updateFromServer(db, server)
+                        changed = true
+                    }
+                }
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return changed
+    }
+
+    private fun Booking.matchesServerState(server: Booking): Boolean =
+        nodeId == server.nodeId && slotId == server.slotId && bookingDate == server.bookingDate &&
+            bookingTime == server.bookingTime && energyAmount == server.energyAmount && status == server.status
 
     /** Flips a locally-cached booking's sync_status to SYNCED once its queued RESERVATION_UPDATE/
      * RESERVATION_CANCEL has been confirmed by the backend - the business status/fields were

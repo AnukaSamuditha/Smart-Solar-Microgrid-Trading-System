@@ -36,6 +36,14 @@ class BookingsViewModel(
         viewModelScope.launch {
             allItems = withContext(Dispatchers.IO) { bookingRepository.getBookingListItems(nic) }
             applyFilters()
+
+            // cache shown first (instant, works offline); then pull the server's state and
+            // re-render only if something actually changed (e.g. a web approval)
+            val changed = withContext(Dispatchers.IO) { bookingRepository.refreshFromServer(nic) }
+            if (changed) {
+                allItems = withContext(Dispatchers.IO) { bookingRepository.getBookingListItems(nic) }
+                applyFilters()
+            }
         }
     }
 

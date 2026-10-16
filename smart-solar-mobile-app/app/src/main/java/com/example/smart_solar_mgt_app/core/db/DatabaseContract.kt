@@ -7,7 +7,7 @@ package com.example.smart_solar_mgt_app.core.db
 object DatabaseContract {
 
     const val DATABASE_NAME = "smart_solar.db"
-    const val DATABASE_VERSION = 8
+    const val DATABASE_VERSION = 10
 
     // password_hash is nullable (v4->v5 migration) - a self-registered prosumer has a local row
     // with no password until it's approved and they set one via ResetPasswordActivity; see
@@ -85,6 +85,26 @@ object DatabaseContract {
         const val CREATE_INDEX_SYNC = "CREATE INDEX idx_bookings_sync ON $TABLE($COL_SYNC_STATUS)"
     }
 
+    /**
+     * Maps a client-generated temporary booking id to the backend's real reservation id once its
+     * RESERVATION_CREATE syncs (see LocalDbManager.reconcileCreatedBooking). Any screen still
+     * holding the temporary id (e.g. a restored "Reservation Summary" back-stack entry) resolves
+     * through here via LocalDbManager.getBookingById instead of finding the row gone. No FK to
+     * bookings - the old id is deliberately not a row any more.
+     */
+    object BookingIdAliases {
+        const val TABLE = "booking_id_aliases"
+        const val COL_OLD_ID = "old_booking_id"
+        const val COL_NEW_ID = "new_booking_id"
+
+        const val CREATE_TABLE = """
+            CREATE TABLE $TABLE (
+                $COL_OLD_ID TEXT PRIMARY KEY,
+                $COL_NEW_ID TEXT NOT NULL
+            )
+        """
+    }
+
     object Transactions {
         const val TABLE = "transactions"
         const val COL_TRANSACTION_ID = "transaction_id"
@@ -139,7 +159,7 @@ object DatabaseContract {
                     CHECK($COL_OPERATION_TYPE IN (
                         'PROSUMER_REGISTER','PROSUMER_APPROVE','PROSUMER_DENY',
                         'RESERVATION_CREATE','RESERVATION_UPDATE','RESERVATION_CANCEL',
-                        'RESERVATION_APPROVE','RESERVATION_REJECT'
+                        'RESERVATION_APPROVE','RESERVATION_REJECT','PROFILE_UPDATE'
                     )),
                 $COL_ENTITY_REF TEXT NOT NULL,
                 $COL_PAYLOAD_JSON TEXT NOT NULL,

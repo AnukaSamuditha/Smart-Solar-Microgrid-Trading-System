@@ -7,6 +7,8 @@ import com.example.smart_solar_mgt_app.core.network.RemoteProsumerRegisterOutcom
 import com.example.smart_solar_mgt_app.core.network.RemoteProsumerRegisterRejection
 import com.example.smart_solar_mgt_app.core.network.RemoteProsumerReviewOutcome
 import com.example.smart_solar_mgt_app.core.network.RemoteProsumerReviewRejection
+import com.example.smart_solar_mgt_app.core.network.RemoteProsumerUpdateOutcome
+import com.example.smart_solar_mgt_app.core.network.RemoteProsumerUpdateRejection
 import com.example.smart_solar_mgt_app.core.network.RemoteReservationActionOutcome
 import com.example.smart_solar_mgt_app.core.network.RemoteReservationModifyRejection
 import com.example.smart_solar_mgt_app.core.network.RemoteReservationRequestOutcome
@@ -21,6 +23,7 @@ import com.example.smart_solar_mgt_app.data.repository.toSyncedBooking
 import com.example.smart_solar_mgt_app.di.ServiceLocator
 import com.example.smart_solar_mgt_app.domain.model.OutboxOperation
 import com.example.smart_solar_mgt_app.domain.model.OutboxOperationType
+import com.example.smart_solar_mgt_app.domain.model.Role
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -61,6 +64,16 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             }
         }
 
+        // pull half of reservation sync - after the push above, so this device's own queued
+        // changes are already on the server (and any still-pending ones are skipped by the
+        // merge). Prosumer sessions only; a network failure here is not worth a WorkManager
+        // retry, the next periodic run / screen refresh picks it up.
+        val session = ServiceLocator.secureSessionStore.getSession()
+        if (session?.role == Role.PROSUMER && ServiceLocator.secureSessionStore.getApiToken() != null) {
+            ServiceLocator.bookingRepository.refreshFromServer(session.userId)
+            ServiceLocator.authRepository.refreshProfileFromServer(session.userId)
+        }
+
         // WorkManager's own backoff policy governs the retry delay - we just report whether one is needed.
         if (anyTransientFailure) Result.retry() else Result.success()
     }
@@ -87,6 +100,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 OutboxOperationType.RESERVATION_CANCEL -> attemptReservationCancel(operation, reservationRepo)
                 OutboxOperationType.RESERVATION_APPROVE -> attemptReservationReview(reservationRepo.approve(operation.entityRef))
                 OutboxOperationType.RESERVATION_REJECT -> attemptReservationReview(reservationRepo.reject(operation.entityRef, reason = null))
+                OutboxOperationType.PROFILE_UPDATE -> attemptProfileUpdate(operation, prosumerRepo)
             }
         } catch (e: Exception) {
             // a malformed payload (shouldn't happen - we wrote it ourselves) is not worth
@@ -107,6 +121,22 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             RemoteProsumerRegisterOutcome.Success -> SyncOutcome.Success
             is RemoteProsumerRegisterOutcome.Rejected -> SyncOutcome.Rejected(messageFor(outcome.reason))
             is RemoteProsumerRegisterOutcome.NetworkFailure -> SyncOutcome.Transient(outcome.message)
+        }
+    }
+
+    private fun attemptProfileUpdate(operation: OutboxOperation, repo: RemoteProsumerRepository): SyncOutcome {
+        val json = JSONObject(operation.payloadJson)
+        return when (val outcome = repo.updateMyProfile(json.getString("fullName"), json.getString("phone"), json.getString("address"))) {
+            is RemoteProsumerUpdateOutcome.Success -> SyncOutcome.Success
+            is RemoteProsumerUpdateOutcome.Rejected -> when (outcome.reason) {
+                // same reasoning as the approve/deny case above: a residual 401 means the session
+                // itself is gone, not that the edit is invalid - keep it queued
+                RemoteProsumerUpdateRejection.UNAUTHORIZED -> SyncOutcome.Transient("Session expired - log in again to sync this")
+                RemoteProsumerUpdateRejection.NOT_ACTIVE -> SyncOutcome.Rejected("Your account isn't active, so this change was not saved.")
+                RemoteProsumerUpdateRejection.INVALID -> SyncOutcome.Rejected("The server rejected this profile change.")
+                RemoteProsumerUpdateRejection.NOT_FOUND -> SyncOutcome.Rejected("Your profile no longer exists on the server.")
+            }
+            is RemoteProsumerUpdateOutcome.NetworkFailure -> SyncOutcome.Transient(outcome.message)
         }
     }
 

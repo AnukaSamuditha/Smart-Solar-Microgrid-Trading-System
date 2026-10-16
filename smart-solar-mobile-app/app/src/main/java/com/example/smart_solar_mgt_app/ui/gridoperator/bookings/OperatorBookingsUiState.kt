@@ -7,4 +7,5 @@ sealed class OperatorBookingsUiState {
     data class Loaded(val items: List<BookingListItem>) : OperatorBookingsUiState()
     data object EmptyScope : OperatorBookingsUiState()
     data object NoResults : OperatorBookingsUiState()
+    data class Error(val message: String) : OperatorBookingsUiState()
 }

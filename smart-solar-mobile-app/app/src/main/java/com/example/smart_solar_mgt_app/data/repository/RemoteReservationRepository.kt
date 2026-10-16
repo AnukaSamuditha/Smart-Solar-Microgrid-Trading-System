@@ -31,4 +31,13 @@ interface RemoteReservationRepository {
     /** Backoffice/Grid Operator - GET /api/v1/reservations?status=Pending. Cross-prosumer -
      * every Pending request awaiting review, not just ones this device happens to have synced. */
     fun listPending(): RemoteReservationListOutcome
+
+    /** Prosumer self-service - GET /api/v1/reservations/mine, every page. The caller's own
+     * reservations in any status; the pull half of reservation sync (see
+     * BookingRepository.refreshFromServer). */
+    fun listMine(): RemoteReservationListOutcome
+
+    /** Backoffice/Grid Operator - GET /api/v1/reservations, every page, every status and
+     * prosumer. Backs the operator's read-only Bookings overview tab. */
+    fun listAll(): RemoteReservationListOutcome
 }

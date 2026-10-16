@@ -15,6 +15,12 @@ interface AuthRepository {
     fun updateProfile(nic: String, name: String, email: String, phone: String?, address: String?): AppResult<User>
     fun updateAccountStatus(nic: String, status: AccountStatus)
 
+    /** Pull half of profile sync (Prosumer): fetches GET /prosumers/me and refreshes the cached
+     * profile + account status, so edits/deactivations made on the web show up here. Blocking
+     * network call - run off the main thread. True if the local data changed; false if nothing
+     * changed or the server couldn't be reached. */
+    fun refreshProfileFromServer(nic: String): Boolean
+
     /** Every Prosumer currently awaiting activation - backs the dev-only activation simulator
      * today, and is the same query a real Backoffice/API would need permanently. */
     fun getUsersPendingActivation(): List<User>
